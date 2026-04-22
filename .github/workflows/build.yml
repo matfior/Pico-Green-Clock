@@ -8,6 +8,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  host-tests:
+    name: Host unit tests (pure logic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run
+        run: |
+          gcc -O2 -Wall -Wextra -std=c11 tests/test_pure.c -o tests/test_pure
+          ./tests/test_pure
+
   build:
     name: ${{ matrix.board }}
     runs-on: ubuntu-latest

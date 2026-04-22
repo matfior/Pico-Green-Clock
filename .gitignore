@@ -16,6 +16,9 @@ compile_commands.json
 *.map
 *.dis
 
+# Host test binaries
+tests/test_pure
+
 # Editor/OS noise
 .vscode/
 .idea/
