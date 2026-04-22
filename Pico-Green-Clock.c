@@ -295,6 +295,9 @@
 #define NETWORK_NAME     "MyNetworkName"  /// for those with a development environment, you can enter your SSID and password below, run the Firmware until the
 #define NETWORK_PASSWORD "MyPassword"     /// first date scrolling (credentials will be saved to flash), then erase the credentials and put comment on both lines.
 
+/* Uncomment locally (and create a gitignored Credentials.cpp) to inject Wi-Fi creds into flash on first boot without touching tracked source. */
+// #define USE_LOCAL_CREDENTIALS  ///
+
 /* If a Pico W is used, librairies for Wi-Fi and NTP synchronization will be merged in the executable. If PICO_W is not defined, NTP is automatically disabled. */
 #define PICO_W  ///
 
@@ -303,6 +306,9 @@
 
 /* Release or Developer Version: Make selective choices or options. */
 #define RELEASE_VERSION  ///
+
+/* Turn Off ALL SOUNDS. */
+#define SOUND_DISABLED  ///
 
 
 
@@ -2289,7 +2295,7 @@ int main(void)
   // sprintf(FlashConfig.Password,     ".:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.");
   // sprintf(&FlashConfig.SSID[4],     "MyNetworkName");
   // sprintf(&FlashConfig.Password[4], "MyNetworkPassword");
-  #ifdef DEVELOPER_VERSION
+  #ifdef USE_LOCAL_CREDENTIALS
   #include "Credentials.cpp"
   #endif
   /***/

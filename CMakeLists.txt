@@ -6,16 +6,19 @@
 cmake_minimum_required(VERSION 3.13)
 #
 #
+# Must be set before pico_sdk_import.cmake so Pico SDK configures Pico W support.
+set(PICO_BOARD pico_w)
+#
+#
 include(pico_sdk_import.cmake)
 #
 #
-project(Pico-Green-Clock)
+project(Pico-Green-Clock C CXX ASM)
 #
 #
 # set (CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 set (C_STANDARD 11)
 set (CXX_STANDARD 17)
-set (PICO_BOARD pico_w)
 #
 #
 pico_sdk_init()
@@ -43,7 +46,17 @@ pico_add_extra_outputs(Pico-Green-Clock)
 #
 #
 # Pull in our pico_stdlib which pulls in commonly used features
-target_link_libraries(Pico-Green-Clock hardware_adc hardware_flash hardware_i2c hardware_pwm hardware_sync pico_stdlib pico_unique_id pico_multicore pico_cyw43_arch_lwip_threadsafe_background)
+target_link_libraries(Pico-Green-Clock PRIVATE
+        hardware_adc
+        hardware_flash
+        hardware_i2c
+        hardware_pwm
+        hardware_sync
+        pico_stdlib
+        pico_unique_id
+        pico_multicore
+        pico_cyw43_arch_lwip_threadsafe_background
+        )
 #
 #
 # add url via pico_set_program_url
