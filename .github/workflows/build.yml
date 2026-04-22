@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  push:
+    branches: [main, improvements]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.board }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: pico
+            cmake_file: CMakeLists.txt.Pico
+          - board: pico_w
+            cmake_file: CMakeLists.txt
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            gcc-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            libstdc++-arm-none-eabi-newlib \
+            build-essential
+
+      - name: Checkout Pico SDK
+        uses: actions/checkout@v4
+        with:
+          repository: raspberrypi/pico-sdk
+          ref: 1.5.1
+          path: pico-sdk
+          submodules: recursive
+
+      - name: Stage CMakeLists for ${{ matrix.board }}
+        run: |
+          if [ "${{ matrix.cmake_file }}" != "CMakeLists.txt" ]; then
+            cp "${{ matrix.cmake_file }}" CMakeLists.txt
+          fi
+          cp pico-sdk/external/pico_sdk_import.cmake .
+
+      - name: Configure
+        run: cmake -S . -B build
+        env:
+          PICO_SDK_PATH: ${{ github.workspace }}/pico-sdk
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pico-Green-Clock-${{ matrix.board }}
+          path: build/Pico-Green-Clock.uf2
+          if-no-files-found: error
