@@ -5,9 +5,6 @@
 # Pico Green Clock
 Firmware Version 9.03 released 09-SEP-2023
 
-NOTE: Source code still shows 9.02. You may check near line 1257... If Spanish month names are there, it means you have Version 9.03.
-      Also, be aware that posted ".uf2" versions are still 9.02 (without Spanish support). You'll have to rebuild executables to get Spanish language support for now.
-
 NEW WITH FIRMWARE 9.02 and 9.03:
 =======================
 - Fix the problem with Wi-Fi connection (CYW43 initialization) with new Pico's SDK library.

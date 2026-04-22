@@ -285,7 +285,7 @@
                      "CalendarEventsGeneric.cpp".
 \* ================================================================== */
 /* Firmware version. */
-#define FIRMWARE_VERSION "9.02"  ///
+#define FIRMWARE_VERSION "9.03"  ///
 
 /* Select the language for data display. */
 #define DEFAULT_LANGUAGE ENGLISH // choices for now are FRENCH, ENGLISH, GERMAN, and SPANISH.
