@@ -58,6 +58,15 @@ jobs:
           fi
           cp pico-sdk/external/pico_sdk_import.cmake .
 
+      - name: Disable PICO_W for pico board
+        if: matrix.board == 'pico'
+        run: |
+          # The original Pico has no Wi-Fi/cyw43 and cannot link NTP support.
+          # PICO_W is hard-coded in the source; the upstream workflow is for the
+          # user to comment it out manually. Do that here for the pico job.
+          sed -i 's|^#define PICO_W  ///|// #define PICO_W  ///|' Pico-Green-Clock.c
+          grep -n 'define PICO_W' Pico-Green-Clock.c || true
+
       - name: Configure
         run: cmake -S . -B build
         env:
