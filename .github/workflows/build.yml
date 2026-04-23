@@ -1,0 +1,83 @@
+name: Build
+
+on:
+  push:
+    branches: [main, improvements]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  host-tests:
+    name: Host unit tests (pure logic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run
+        run: |
+          gcc -O2 -Wall -Wextra -std=c11 tests/test_pure.c -o tests/test_pure
+          ./tests/test_pure
+
+  build:
+    name: ${{ matrix.board }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: pico
+            cmake_file: CMakeLists.txt.Pico
+          - board: pico_w
+            cmake_file: CMakeLists.txt
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            gcc-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            libstdc++-arm-none-eabi-newlib \
+            build-essential
+
+      - name: Checkout Pico SDK
+        uses: actions/checkout@v4
+        with:
+          repository: raspberrypi/pico-sdk
+          ref: 1.5.1
+          path: pico-sdk
+          submodules: recursive
+
+      - name: Stage CMakeLists for ${{ matrix.board }}
+        run: |
+          if [ "${{ matrix.cmake_file }}" != "CMakeLists.txt" ]; then
+            cp "${{ matrix.cmake_file }}" CMakeLists.txt
+          fi
+          cp pico-sdk/external/pico_sdk_import.cmake .
+
+      - name: Disable PICO_W for pico board
+        if: matrix.board == 'pico'
+        run: |
+          # The original Pico has no Wi-Fi/cyw43 and cannot link NTP support.
+          # PICO_W is hard-coded in the source; the upstream workflow is for the
+          # user to comment it out manually. Do that here for the pico job.
+          sed -i 's|^#define PICO_W  ///|// #define PICO_W  ///|' Pico-Green-Clock.c
+          grep -n 'define PICO_W' Pico-Green-Clock.c || true
+
+      - name: Configure
+        run: cmake -S . -B build
+        env:
+          PICO_SDK_PATH: ${{ github.workspace }}/pico-sdk
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pico-Green-Clock-${{ matrix.board }}
+          path: build/Pico-Green-Clock.uf2
+          if-no-files-found: error

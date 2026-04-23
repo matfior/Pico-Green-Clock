@@ -285,7 +285,7 @@
                      "CalendarEventsGeneric.cpp".
 \* ================================================================== */
 /* Firmware version. */
-#define FIRMWARE_VERSION "9.02"  ///
+#define FIRMWARE_VERSION "9.03"  ///
 
 /* Select the language for data display. */
 #define DEFAULT_LANGUAGE ENGLISH // choices for now are FRENCH, ENGLISH, GERMAN, and SPANISH.
@@ -2129,7 +2129,7 @@ int main(void)
           break;
 
           default:
-            sprintf(String, "-> Section #%u\r", Loop1UInt8);
+            snprintf(String, sizeof(String), "-> Section #%u\r", Loop1UInt8);
             uart_send(__LINE__, String);
           break;
         }
@@ -2225,7 +2225,7 @@ int main(void)
       flash_display_config();
     }
 
-    sprintf(FlashConfig.Version, "7.00");   // convert to Version 7.00.
+    snprintf(FlashConfig.Version, sizeof(FlashConfig.Version), "7.00");   // convert to Version 7.00.
     FlashConfig.Timezone       = 0;         // assign default value within valid range.
     FlashConfig.FlagSummerTime = FLAG_OFF;  // FlashConfig.FlagSummerTime will be evaluated and overwritten below.
   
@@ -2240,7 +2240,7 @@ int main(void)
   /* -------------------- UPDATE VERSION 7.00 TO VERSION 8.00 -------------------- */
   if (strcmp(FlashConfig.Version, "7.00") == 0)
   {
-    sprintf(FlashConfig.Version, "8.00");   // convert to Version 8.00.
+    snprintf(FlashConfig.Version, sizeof(FlashConfig.Version), "8.00");   // convert to Version 8.00.
     /* No other change required from 7.00 to 8.00. */
   }
 
@@ -2255,7 +2255,7 @@ int main(void)
       flash_display_config();
     }
 
-    sprintf(FlashConfig.Version, "9.01");   // convert to Version 9.01
+    snprintf(FlashConfig.Version, sizeof(FlashConfig.Version), "9.01");   // convert to Version 9.01
     FlashConfig.FlagAutoBrightness = FLAG_ON;
     FlashConfig.FlagKeyclick       = FLAG_ON;
     FlashConfig.FlagScrollEnable   = FLAG_ON;
@@ -2263,10 +2263,10 @@ int main(void)
     FlashConfig.TimeDisplayMode    = H24;
     for (Loop1UInt8 = 0; Loop1UInt8 < 9; ++Loop1UInt8)
       FlashConfig.Alarm[Loop1UInt8].FlagStatus = FLAG_OFF;
-    sprintf(FlashConfig.SSID,     ".;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.");                                // write specific footprint to flash memory.
-    sprintf(FlashConfig.Password, ".:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.");  // write specific footprint to flash memory.
-    sprintf(&FlashConfig.SSID[4],     NETWORK_NAME);
-    sprintf(&FlashConfig.Password[4], NETWORK_PASSWORD);
+    snprintf(FlashConfig.SSID, sizeof(FlashConfig.SSID),     ".;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.");                                // write specific footprint to flash memory.
+    snprintf(FlashConfig.Password, sizeof(FlashConfig.Password), ".:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.");  // write specific footprint to flash memory.
+    snprintf(&FlashConfig.SSID[4], sizeof(FlashConfig.SSID) - (4),     NETWORK_NAME);
+    snprintf(&FlashConfig.Password[4], sizeof(FlashConfig.Password) - (4), NETWORK_PASSWORD);
 
 
     if (DebugBitMask & DEBUG_FLASH)
@@ -2868,20 +2868,20 @@ int main(void)
   switch (FlashConfig.Language)
   {
     case (CZECH):
-      sprintf(String, "Pico Green Clock - verze firmwaru %s    ", FIRMWARE_VERSION);
+      snprintf(String, sizeof(String), "Pico Green Clock - verze firmwaru %s    ", FIRMWARE_VERSION);
     break;
   
     case (ENGLISH):
     default:
-      sprintf(String, "Pico Green Clock - Firmware Version %s    ", FIRMWARE_VERSION);
+      snprintf(String, sizeof(String), "Pico Green Clock - Firmware Version %s    ", FIRMWARE_VERSION);
     break;
 
     case (FRENCH):
-      sprintf(String, "Pico Green Clock - Microcode Version %s    ", FIRMWARE_VERSION);
+      snprintf(String, sizeof(String), "Pico Green Clock - Microcode Version %s    ", FIRMWARE_VERSION);
     break;
 
     case (SPANISH):
-      sprintf(String, "Pico Green Clock - Version de Firmware %s    ", FIRMWARE_VERSION);
+      snprintf(String, sizeof(String), "Pico Green Clock - Version de Firmware %s    ", FIRMWARE_VERSION);
     break;
   }
   scroll_string(24, String);
@@ -2955,7 +2955,7 @@ int main(void)
     switch (FlashConfig.Language)
     {
       case (CZECH):
-        sprintf(String, "Chyba nastaveni BME280.    ");
+        snprintf(String, sizeof(String), "Chyba nastaveni BME280.    ");
         String[14] = (UINT8)131; // i-acute
         scroll_string(24, String);
       break;
@@ -2987,7 +2987,7 @@ int main(void)
 
       case 0x56:
       case 0x57:
-        sprintf(String, "BMP280 device ID: 0x%2.2X (sample production units)    ", Dum1UInt8);
+        snprintf(String, sizeof(String), "BMP280 device ID: 0x%2.2X (sample production units)    ", Dum1UInt8);
         scroll_string(24, String);
         scroll_string(24, "Your device seems not to be a true BME280    ");
       break;
@@ -2998,7 +2998,7 @@ int main(void)
       break;
 
       default:
-        sprintf(String, "Unrecognized BME280 device ID: 0x%2.2X    ", Dum1UInt8);
+        snprintf(String, sizeof(String), "Unrecognized BME280 device ID: 0x%2.2X    ", Dum1UInt8);
         scroll_string(24, String);
         scroll_string(24, "Your device seems not to be a true BME280    ");
       break;
@@ -3006,7 +3006,7 @@ int main(void)
 
     /* Read BME280 unique id ("serial number" of the specific device used). */
     Bme280UniqueId = bme280_read_unique_id();
-    sprintf(String, "BME280 Unique ID: %4.4X %4.4X    ", ((Bme280UniqueId & 0xFFFF0000) >> 16), Bme280UniqueId & 0xFFFF);
+    snprintf(String, sizeof(String), "BME280 Unique ID: %4.4X %4.4X    ", ((Bme280UniqueId & 0xFFFF0000) >> 16), Bme280UniqueId & 0xFFFF);
     scroll_string(24, String);
 
     /* Read calibration data of the specific device used (written in BME280's non volatile memory). */
@@ -3235,7 +3235,7 @@ int main(void)
           }
 
           NTPData.FlagNTPSuccess = FLAG_OFF;
-          sprintf(String, "%4.4u", CurrentYear);
+          snprintf(String, sizeof(String), "%4.4u", CurrentYear);
           CurrentYearLowPart = atoi(&String[2]);
           
           set_time(NTPData.CurrentSecond, NTPData.CurrentMinute, NTPData.CurrentHour, NTPData.CurrentDayOfWeek, NTPData.CurrentDayOfMonth, NTPData.CurrentMonth, CurrentYearLowPart);
@@ -5029,14 +5029,14 @@ void display_data(UCHAR *Data, UINT32 Size)
 
   for (Loop1UInt32 = 0; Loop1UInt32 < Size; Loop1UInt32 += 16)
   {
-    sprintf(String, "[%4.4X] ", Loop1UInt32);
+    snprintf(String, sizeof(String), "[%4.4X] ", Loop1UInt32);
 
     for (Loop2UInt32 = 0; Loop2UInt32 < 16; ++Loop2UInt32)
     {
       if ((Loop1UInt32 + Loop2UInt32) >= Size)
         strcat(String, "   ");
       else
-        sprintf(&String[strlen(String)], "%2.2X ", Data[Loop1UInt32 + Loop2UInt32]);
+        snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%2.2X ", Data[Loop1UInt32 + Loop2UInt32]);
     }
     
   
@@ -5044,7 +5044,7 @@ void display_data(UCHAR *Data, UINT32 Size)
 
   
     /* Add separator. */
-    sprintf(String, "| ");
+    snprintf(String, sizeof(String), "| ");
 
     for (Loop2UInt32 = 0; Loop2UInt32 < 16; ++Loop2UInt32)
     {
@@ -5052,7 +5052,7 @@ void display_data(UCHAR *Data, UINT32 Size)
         break; // do not count up to 16 if we already reached end of data to display.
       if ((Data[Loop1UInt32 + Loop2UInt32] >= 0x20) && (Data[Loop1UInt32 + Loop2UInt32] <= 0x7E) && (Data[Loop1UInt32 + Loop2UInt32] != 0x25))
       {
-        sprintf(&String[strlen(String)], "%c", Data[Loop1UInt32 + Loop2UInt32]);
+        snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%c", Data[Loop1UInt32 + Loop2UInt32]);
       }
       else
       {
@@ -5560,28 +5560,28 @@ void flash_display(UINT32 Offset, UINT32 Length)
 
   for (Loop1UInt32 = Offset; Loop1UInt32 < (Offset + Length); Loop1UInt32 += 16)
   {
-    sprintf(String, "[%p] ", XIP_BASE + Loop1UInt32);
+    snprintf(String, sizeof(String), "[%p] ", XIP_BASE + Loop1UInt32);
 
     for (Loop2UInt32 = 0; Loop2UInt32 < 16; ++Loop2UInt32)
     {
-      sprintf(&String[strlen(String)], "%2.2X ", FlashBaseAddress[Loop1UInt32 + Loop2UInt32]);
+      snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%2.2X ", FlashBaseAddress[Loop1UInt32 + Loop2UInt32]);
     }
     uart_send(__LINE__, String);
 
 
     /* Add separator. */
-    sprintf(String, "| ");
+    snprintf(String, sizeof(String), "| ");
 
 
     for (Loop2UInt32 = 0; Loop2UInt32 < 16; ++Loop2UInt32)
     {
       if ((FlashBaseAddress[Loop1UInt32 + Loop2UInt32] >= 0x20) && (FlashBaseAddress[Loop1UInt32 + Loop2UInt32] <= 0x7E)  && (FlashBaseAddress[Loop1UInt32 + Loop2UInt32] != 0x25))
       {
-        sprintf(&String[Loop2UInt32 + 2], "%c", FlashBaseAddress[Loop1UInt32 + Loop2UInt32]);
+        snprintf(&String[Loop2UInt32 + 2], sizeof(String) - (Loop2UInt32 + 2), "%c", FlashBaseAddress[Loop1UInt32 + Loop2UInt32]);
       }
       else
       {
-        sprintf(&String[Loop2UInt32 + 2], ".");
+        snprintf(&String[Loop2UInt32 + 2], sizeof(String) - (Loop2UInt32 + 2), ".");
       }
     }
     uart_send(__LINE__, String);
@@ -5664,9 +5664,9 @@ UINT8 flash_display_config(void)
 
     /* Force English if flash configuration has not already been read. */
     if ((FlashConfig.Language > LANGUAGE_LO_LIMIT) && (FlashConfig.Language < LANGUAGE_HI_LIMIT))
-      sprintf(&String[strlen(String)], "   %s\r", DayName[FlashConfig.Language][Loop1UInt16]);
+      snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "   %s\r", DayName[FlashConfig.Language][Loop1UInt16]);
     else
-      sprintf(&String[strlen(String)], "   %s\r", DayName[ENGLISH][Loop1UInt16]);
+      snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "   %s\r", DayName[ENGLISH][Loop1UInt16]);
     uart_send(__LINE__, String);
   }
   uart_send(__LINE__, "\r");
@@ -5681,14 +5681,14 @@ UINT8 flash_display_config(void)
     uart_send(__LINE__, "[%X] Alarm[%2.2u].Second:          %3u\r", &FlashConfig.Alarm[Loop1UInt16].Second, Loop1UInt16, FlashConfig.Alarm[Loop1UInt16].Second);
     
     uint64_to_binary_string(FlashConfig.Alarm[Loop1UInt16].Day, 8, DayMask);
-    sprintf(String, "[%8.8X] Alarm[%2.2u].DayMask:    %s     (0x%2.2X) ", &FlashConfig.Alarm[Loop1UInt16].Day, Loop1UInt16, DayMask, FlashConfig.Alarm[Loop1UInt16].Day);
+    snprintf(String, sizeof(String), "[%8.8X] Alarm[%2.2u].DayMask:    %s     (0x%2.2X) ", &FlashConfig.Alarm[Loop1UInt16].Day, Loop1UInt16, DayMask, FlashConfig.Alarm[Loop1UInt16].Day);
 
     for (Loop2UInt16 = 1; Loop2UInt16 < 8; ++Loop2UInt16)
     {
       if (FlashConfig.Alarm[Loop1UInt16].Day & (1 << Loop2UInt16))
       {
         Dum1UInt8 = strlen(String);
-        sprintf(&String[strlen(String)], "%s", DayName[FlashConfig.Language][Loop2UInt16]);
+        snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%s", DayName[FlashConfig.Language][Loop2UInt16]);
         String[Dum1UInt8 + 3] = 0x20;  // space separator.
         String[Dum1UInt8 + 4] = 0x00;  // keep first 3 characters of day name.
       }
@@ -5701,17 +5701,17 @@ UINT8 flash_display_config(void)
   /* In case SSID is not initialized, display it character by character. */
   uart_send(__LINE__, "Note: SSID and Password begin at 5th character position, superimposed on top of two different footprints.\r");
   uart_send(__LINE__, "      There is also an end-of-string character at the end of each string that we don't see on the screen.\r");
-  sprintf(String, "SSID:     [");
+  snprintf(String, sizeof(String), "SSID:     [");
   for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(FlashConfig.SSID); ++Loop1UInt16)
-    sprintf(&String[strlen(String)], "%c", FlashConfig.SSID[Loop1UInt16]);
+    snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%c", FlashConfig.SSID[Loop1UInt16]);
   strcat(String, "]\r");
   uart_send(__LINE__, String);
 
 
   /* In case password is not initialized, display it character by character. */
-  sprintf(String, "Password: [");
+  snprintf(String, sizeof(String), "Password: [");
   for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(FlashConfig.Password); ++Loop1UInt16)
-    sprintf(&String[strlen(String)], "%c", FlashConfig.Password[Loop1UInt16]);
+    snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%c", FlashConfig.Password[Loop1UInt16]);
   strcat(String, "]\r\r");
   uart_send(__LINE__, String);
 
@@ -5720,7 +5720,7 @@ UINT8 flash_display_config(void)
   uart_send(__LINE__, "[%X] Reserved2 - size 0x%2.2X (%3u):\r  ", &FlashConfig.Reserved2[Loop1UInt16], sizeof(FlashConfig.Reserved2), sizeof(FlashConfig.Reserved2));
   for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(FlashConfig.Reserved2); ++Loop1UInt16)
   {
-    sprintf(String, "- 0x%2.2X ", FlashConfig.Reserved2[Loop1UInt16]);
+    snprintf(String, sizeof(String), "- 0x%2.2X ", FlashConfig.Reserved2[Loop1UInt16]);
     uart_send(__LINE__, String);
 
     if (((Loop1UInt16 + 1) % 10) == 0)
@@ -5881,7 +5881,7 @@ UINT8 flash_read_config(void)
   }
 
   /* Assign default values and save a new configuration to flash. */
-  sprintf(FlashConfig.Version, "%s", FIRMWARE_VERSION);   // firmware version number.
+  snprintf(FlashConfig.Version, sizeof(FlashConfig.Version), "%s", FIRMWARE_VERSION);   // firmware version number.
   FlashConfig.CurrentYearCentile = 20;                    // assume we are in years 20xx. Green Clock was always reverting to 20.
   FlashConfig.Language           = DEFAULT_LANGUAGE;      // hourly chime will begin at this hour.
   FlashConfig.DSTCountry         = DST_COUNTRY;           // specifies how to handle the daylight saving time depending of country (see User Guide).
@@ -5912,68 +5912,68 @@ UINT8 flash_read_config(void)
   FlashConfig.Alarm[0].Hour   = 8;
   FlashConfig.Alarm[0].Minute = 00;
   FlashConfig.Alarm[0].Second = 29;              // not used for now... 29 is hardcoded in source code to offload the clock during busy periods.
-  sprintf(FlashConfig.Alarm[0].Text, "Alarm 1"); // string to be scrolled when alarm 1 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[0].Text, sizeof(FlashConfig.Alarm[0].Text), "Alarm 1"); // string to be scrolled when alarm 1 is triggered (ALARM TEXT).
 
   FlashConfig.Alarm[1].FlagStatus = FLAG_OFF; // all alarms set to Off in default configuration.
   FlashConfig.Alarm[1].Day    = (1 << SAT) + (1 << SUN);
   FlashConfig.Alarm[1].Hour   = 14;
   FlashConfig.Alarm[1].Minute = 37;
   FlashConfig.Alarm[1].Second = 29;              // not used for now... 29 is hardcoded in source code to offload the clock during busy periods.
-  sprintf(FlashConfig.Alarm[1].Text, "Alarm 2"); // string to be scrolled when alarm 2 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[1].Text, sizeof(FlashConfig.Alarm[1].Text), "Alarm 2"); // string to be scrolled when alarm 2 is triggered (ALARM TEXT).
 
   FlashConfig.Alarm[2].FlagStatus = FLAG_OFF; // all alarms set to Off in default configuration.
   FlashConfig.Alarm[2].Day    = (1 << MON);
   FlashConfig.Alarm[2].Hour   = 14;
   FlashConfig.Alarm[2].Minute = 36;
   FlashConfig.Alarm[2].Second = 29;              // not used for now... 29 is hardcoded in source code to offload the clock during busy periods.
-  sprintf(FlashConfig.Alarm[2].Text, "Alarm 3"); // string to be scrolled when alarm 3 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[2].Text, sizeof(FlashConfig.Alarm[2].Text), "Alarm 3"); // string to be scrolled when alarm 3 is triggered (ALARM TEXT).
 
   FlashConfig.Alarm[3].FlagStatus = FLAG_OFF; // all alarms set to Off in default configuration.
   FlashConfig.Alarm[3].Day    = (1 << TUE);
   FlashConfig.Alarm[3].Hour   = 14;
   FlashConfig.Alarm[3].Minute = 35;
   FlashConfig.Alarm[3].Second = 29;              // not used for now... 29 is hardcoded in source code to offload the clock during busy periods.
-  sprintf(FlashConfig.Alarm[3].Text, "Alarm 4"); // string to be scrolled when alarm 4 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[3].Text, sizeof(FlashConfig.Alarm[3].Text), "Alarm 4"); // string to be scrolled when alarm 4 is triggered (ALARM TEXT).
 
   FlashConfig.Alarm[4].FlagStatus = FLAG_OFF; // all alarms set to Off in default configuration.
   FlashConfig.Alarm[4].Day    = (1 << WED);
   FlashConfig.Alarm[4].Hour   = 14;
   FlashConfig.Alarm[4].Minute = 34;
   FlashConfig.Alarm[4].Second = 29;              // not used for now... 29 is hardcoded in source code to offload the clock during busy periods.
-  sprintf(FlashConfig.Alarm[4].Text, "Alarm 5"); // string to be scrolled when alarm 5 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[4].Text, sizeof(FlashConfig.Alarm[4].Text), "Alarm 5"); // string to be scrolled when alarm 5 is triggered (ALARM TEXT).
 
   FlashConfig.Alarm[5].FlagStatus = FLAG_OFF; // all alarms set to Off in default configuration.
   FlashConfig.Alarm[5].Day    = (1 << THU);
   FlashConfig.Alarm[5].Hour   = 14;
   FlashConfig.Alarm[5].Minute = 33;
   FlashConfig.Alarm[5].Second = 29;
-  sprintf(FlashConfig.Alarm[5].Text, "Alarm 6"); // string to be scrolled when alarm 6 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[5].Text, sizeof(FlashConfig.Alarm[5].Text), "Alarm 6"); // string to be scrolled when alarm 6 is triggered (ALARM TEXT).
 
   FlashConfig.Alarm[6].FlagStatus = FLAG_OFF; // all alarms set to Off in default configuration.
   FlashConfig.Alarm[6].Day    = (1 << FRI);
   FlashConfig.Alarm[6].Hour   = 14;
   FlashConfig.Alarm[6].Minute = 32;
   FlashConfig.Alarm[6].Second = 29;              // not used for now... 29 is hardcoded in source code to offload the clock during busy periods.
-  sprintf(FlashConfig.Alarm[6].Text, "Alarm 7"); // string to be scrolled when alarm 7 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[6].Text, sizeof(FlashConfig.Alarm[6].Text), "Alarm 7"); // string to be scrolled when alarm 7 is triggered (ALARM TEXT).
 
   FlashConfig.Alarm[7].FlagStatus = FLAG_OFF; // all alarms set to Off in default configuration.
   FlashConfig.Alarm[7].Day    = (1 << SAT);
   FlashConfig.Alarm[7].Hour   = 14;
   FlashConfig.Alarm[7].Minute = 31;
   FlashConfig.Alarm[7].Second = 29;              // not used for now... 29 is hardcoded in source code to offload the clock during busy periods.
-  sprintf(FlashConfig.Alarm[7].Text, "Alarm 8"); // string to be scrolled when alarm 8 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[7].Text, sizeof(FlashConfig.Alarm[7].Text), "Alarm 8"); // string to be scrolled when alarm 8 is triggered (ALARM TEXT).
 
   FlashConfig.Alarm[8].FlagStatus = FLAG_OFF; // all alarms set to Off in default configuration.
   FlashConfig.Alarm[8].Day    = (1 << SUN);
   FlashConfig.Alarm[8].Hour   = 14;
   FlashConfig.Alarm[8].Minute = 30;
   FlashConfig.Alarm[8].Second = 29;              // not used for now... 29 is hardcoded in source code to offload the clock during busy periods.
-  sprintf(FlashConfig.Alarm[8].Text, "Alarm 9"); // string to be scrolled when alarm 9 is triggered (ALARM TEXT).
+  snprintf(FlashConfig.Alarm[8].Text, sizeof(FlashConfig.Alarm[8].Text), "Alarm 9"); // string to be scrolled when alarm 9 is triggered (ALARM TEXT).
 
-  sprintf(FlashConfig.SSID,     ".;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.");                                // write specific footprint to flash memory.
-  sprintf(FlashConfig.Password, ".:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.");  // write specific footprint to flash memory.
-  sprintf(&FlashConfig.SSID[4],     "MyNetworkName");
-  sprintf(&FlashConfig.Password[4], "MyPassword");
+  snprintf(FlashConfig.SSID, sizeof(FlashConfig.SSID),     ".;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.;.");                                // write specific footprint to flash memory.
+  snprintf(FlashConfig.Password, sizeof(FlashConfig.Password), ".:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.:.");  // write specific footprint to flash memory.
+  snprintf(&FlashConfig.SSID[4], sizeof(FlashConfig.SSID) - (4),     "MyNetworkName");
+  snprintf(&FlashConfig.Password[4], sizeof(FlashConfig.Password) - (4), "MyPassword");
 
   /* Make provision for future parameters. */
   for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(FlashConfig.Reserved2); ++Loop1UInt16)
@@ -6170,12 +6170,12 @@ void format_temp(UCHAR *TempString, UCHAR *PreString, float Temperature, float H
   if (FlashConfig.TemperatureUnit == CELSIUS)
   {
     /* ...in Celsius. */
-    sprintf(TempString, "%s%2.2f%cC", PreString, Temperature, 0x80);
+    snprintf(TempString, sizeof(TempString), "%s%2.2f%cC", PreString, Temperature, 0x80);
   }
   else
   {
     /* ...or in Fahrenheit. */
-    sprintf(TempString, "%s%2.2f%cF", PreString, Temperature, 0x80);
+    snprintf(TempString, sizeof(TempString), "%s%2.2f%cF", PreString, Temperature, 0x80);
   }
 
   if (Humidity != 0)
@@ -6183,13 +6183,13 @@ void format_temp(UCHAR *TempString, UCHAR *PreString, float Temperature, float H
     switch (FlashConfig.Language)
     {
       case (CZECH):
-        sprintf(&TempString[strlen(TempString)], "  vlh: %2.2f%%", Humidity);
+        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  vlh: %2.2f%%", Humidity);
       break;
 
       case (ENGLISH):
       case (FRENCH):
       default:
-        sprintf(&TempString[strlen(TempString)], "  Hum: %2.2f%%", Humidity);
+        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  Hum: %2.2f%%", Humidity);
       break;
     }
   }
@@ -6199,20 +6199,20 @@ void format_temp(UCHAR *TempString, UCHAR *PreString, float Temperature, float H
     switch (FlashConfig.Language)
     {
       case (CZECH):
-        sprintf(&TempString[strlen(TempString)], "  tlak: %2.2f%% hPa.", Pressure);
+        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  tlak: %2.2f%% hPa.", Pressure);
       break;
 
       case (FRENCH):
-        sprintf(&TempString[strlen(TempString)], "  Pression: %2.2f%% hPa", Pressure);
+        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  Pression: %2.2f%% hPa", Pressure);
       break;
 
       case (SPANISH):
-        sprintf(&TempString[strlen(TempString)], "  Presion: %2.2f%% hPa", Pressure);
+        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  Presion: %2.2f%% hPa", Pressure);
       break;
 
       default:
       case (ENGLISH):
-        sprintf(&TempString[strlen(TempString)], "  Pressure: %2.2f%% hPa", Pressure);
+        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  Pressure: %2.2f%% hPa", Pressure);
       break;
     }
   }
@@ -6247,7 +6247,7 @@ float get_ambient_temperature(UINT8 TemperatureUnit)
   i2c_read_blocking (I2C_PORT, DS3231_ADDRESS, &TempPart2,  1, FALSE);
   TempPart2 = (TempPart2 >> 6) * 25;
 
-  sprintf(TempString, "%u.%u", TempPart1, TempPart2);
+  snprintf(TempString, sizeof(TempString), "%u.%u", TempPart1, TempPart2);
   Temperature = strtof(TempString, NULL);
 
   if (TemperatureUnit == FAHRENHEIT) Temperature = ((Temperature * 9 / 5) + 32);
@@ -6375,21 +6375,21 @@ void get_date_string(UCHAR *String)
       case (1):
       case (21):
       case (31):
-        sprintf(Suffix, "st");
+        snprintf(Suffix, sizeof(Suffix), "st");
       break;
 
       case (2):
       case (22):
-        sprintf(Suffix, "nd");
+        snprintf(Suffix, sizeof(Suffix), "nd");
       break;
 
       case (3):
       case (23):
-        sprintf(Suffix, "rd");
+        snprintf(Suffix, sizeof(Suffix), "rd");
       break;
 
       default:
-        sprintf(Suffix, "th");
+        snprintf(Suffix, sizeof(Suffix), "th");
       break;
     }
 
@@ -6563,12 +6563,12 @@ void get_dst_days(void)
 
   if (DebugBitMask & DEBUG_DST)
   {
-    sprintf(String, "Total number of days:  ");
+    snprintf(String, sizeof(String), "Total number of days:  ");
     for (Loop2UInt8 = 1; Loop2UInt8 < DstParameters[FlashConfig.DSTCountry].StartMonth; ++Loop2UInt8)
     {
-      sprintf(&String[strlen(String)], "%u + ", get_month_days(CurrentYear, Loop2UInt8));
+      snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%u + ", get_month_days(CurrentYear, Loop2UInt8));
     }
-    sprintf(&String[strlen(String)], "%u\r", Loop1UInt8);
+    snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%u\r", Loop1UInt8);
     uart_send(__LINE__, String);
 
     uart_send(__LINE__, " ----------> StartDayOfYear for DST: %u   %s %2u-%s-%4.4u\r\r\r", DstParameters[FlashConfig.DSTCountry].StartDayOfYear, ShortDay[FlashConfig.Language][DstParameters[FlashConfig.DSTCountry].StartDayOfWeek], Loop1UInt8, ShortMonth[ENGLISH][DstParameters[FlashConfig.DSTCountry].StartMonth], CurrentYear);
@@ -6620,12 +6620,12 @@ void get_dst_days(void)
 
   if (DebugBitMask & DEBUG_DST)
   {
-    sprintf(String, "Total number of days:  ");
+    snprintf(String, sizeof(String), "Total number of days:  ");
     for (Loop2UInt8 = 1; Loop2UInt8 < DstParameters[FlashConfig.DSTCountry].EndMonth; ++Loop2UInt8)
     {
-      sprintf(&String[strlen(String)], "%u + ", get_month_days(CurrentYear, Loop2UInt8));
+      snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%u + ", get_month_days(CurrentYear, Loop2UInt8));
     }
-    sprintf(&String[strlen(String)], "%u\r", Loop1UInt8);
+    snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%u\r", Loop1UInt8);
     uart_send(__LINE__, String);
 
     uart_send(__LINE__, " ----------> EndDayOfYear for DST: %u   %s %2u-%s-%4.4u\r", DstParameters[FlashConfig.DSTCountry].EndDayOfYear, ShortDay[FlashConfig.Language][DstParameters[FlashConfig.DSTCountry].EndDayOfWeek], Loop1UInt8, ShortMonth[ENGLISH][DstParameters[FlashConfig.DSTCountry].EndMonth], CurrentYear);
@@ -6838,8 +6838,8 @@ void get_pico_unique_id(void)
   /* Build the Unique ID string in hex. */
   for (Loop1UInt8 = 0; Loop1UInt8 < PICO_UNIQUE_BOARD_ID_SIZE_BYTES; ++Loop1UInt8)
   {
-    sprintf(&PicoUniqueId[strlen(PicoUniqueId)], "%2.2X", board_id.id[Loop1UInt8]);
-    if ((Loop1UInt8 % 2) && (Loop1UInt8 != 7)) sprintf(&PicoUniqueId[strlen(PicoUniqueId)], "-");
+    snprintf(&PicoUniqueId[strlen(PicoUniqueId)], sizeof(PicoUniqueId) - (strlen(PicoUniqueId)), "%2.2X", board_id.id[Loop1UInt8]);
+    if ((Loop1UInt8 % 2) && (Loop1UInt8 != 7)) snprintf(&PicoUniqueId[strlen(PicoUniqueId)], sizeof(PicoUniqueId) - (strlen(PicoUniqueId)), "-");
   }
 
   return;
@@ -8209,10 +8209,10 @@ void process_ir_command(UINT8 IrCommand)
     }
 
 
-    sprintf(String, "TotalCount: %llu", TotalCount);
+    snprintf(String, sizeof(String), "TotalCount: %llu", TotalCount);
     scroll_string(24, String);
 
-    sprintf(String, "[1]: %llu [2]: %llu [3]: %llu [4]: %llu [5]: %llu [6]: %llu",
+    snprintf(String, sizeof(String), "[1]: %llu [2]: %llu [3]: %llu [4]: %llu [5]: %llu [6]: %llu",
                     RandomUnit[0], RandomUnit[1], RandomUnit[2], RandomUnit[3], RandomUnit[4], RandomUnit[5]);
     scroll_string(24, String);
     sleep_ms(20000);
@@ -8400,30 +8400,30 @@ void process_ir_command(UINT8 IrCommand)
       case (CZECH):
         if ((int)(SilencePeriod / 60) == 1)
         {
-          sprintf(String, "Obdobi klidu: %u minuta.", (int)(SilencePeriod / 60));
+          snprintf(String, sizeof(String), "Obdobi klidu: %u minuta.", (int)(SilencePeriod / 60));
           String[5] = (UINT8)131; // i-acute
         }
         else
         {
-          sprintf(String, "Obdobi klidu: %u minut.", (int)(SilencePeriod / 60));
+          snprintf(String, sizeof(String), "Obdobi klidu: %u minut.", (int)(SilencePeriod / 60));
           String[5] = (UINT8)131; // i-acute
         }
       break;
  
       case (FRENCH):
-        sprintf(String, "Periode de silence: %u minutes", (int)(SilencePeriod / 60));
+        snprintf(String, sizeof(String), "Periode de silence: %u minutes", (int)(SilencePeriod / 60));
         String[1] = (UINT8)31; // e - acute.
       break;
  
       case (SPANISH):
-        sprintf(String, "Periodo de silencio: %u minutos", (int)(SilencePeriod / 60));
+        snprintf(String, sizeof(String), "Periodo de silencio: %u minutos", (int)(SilencePeriod / 60));
         String[3] = (UINT8)131; // i - acute.
       break;
  
       case (ENGLISH):
       case (GERMAN):
       default:
-        sprintf(String, "Silence period: %u minutes", (int)(SilencePeriod / 60));
+        snprintf(String, sizeof(String), "Silence period: %u minutes", (int)(SilencePeriod / 60));
       break;
     }
     scroll_string(24, String);
@@ -8478,14 +8478,14 @@ void process_ir_command(UINT8 IrCommand)
           if (FlashConfig.TimeDisplayMode == H12)
           {
             Dum1UInt8 = convert_h24_to_h12(CurrentHour, &AmFlag, &PmFlag);
-            sprintf(String, "%u:%2.2u:%2.2u %s", Dum1UInt8, CurrentMinute, CurrentSecond, AmFlag ? "AM" : "PM");
+            snprintf(String, sizeof(String), "%u:%2.2u:%2.2u %s", Dum1UInt8, CurrentMinute, CurrentSecond, AmFlag ? "AM" : "PM");
             scroll_string(24, String);
             get_date_string(String);
             scroll_string(24, String);
           }
           else
           {
-            sprintf(String, "%2.2u:%2.2u:%2.2u", CurrentHour, CurrentMinute, CurrentSecond);
+            snprintf(String, sizeof(String), "%2.2u:%2.2u:%2.2u", CurrentHour, CurrentMinute, CurrentSecond);
             scroll_string(24, String);
             get_date_string(String);
             scroll_string(24, String);
@@ -8507,15 +8507,15 @@ void process_ir_command(UINT8 IrCommand)
             case (CZECH):
               if (FlashConfig.FlagKeyclick == FLAG_ON)
               {
-                sprintf(String, "opakovani");
+                snprintf(String, sizeof(String), "opakovani");
                 String[6] = (UINT8)129; // a-acute
                 String[8] = (UINT8)131; // i-acute
-                sprintf(String, "Zvuk klaves zapnut - doba %u ms, %s 1: %u %s 2: %u.", TONE_KEYCLICK_DURATION, String, TONE_KEYCLICK_REPEAT1, String, TONE_KEYCLICK_REPEAT2);
+                snprintf(String, sizeof(String), "Zvuk klaves zapnut - doba %u ms, %s 1: %u %s 2: %u.", TONE_KEYCLICK_DURATION, String, TONE_KEYCLICK_REPEAT1, String, TONE_KEYCLICK_REPEAT2);
                 String[7] = (UINT8)129; // a-acute
               }
               else
               {
-                sprintf(String, "Zvuk klaves vypnut.");
+                snprintf(String, sizeof(String), "Zvuk klaves vypnut.");
                 String[7] = (UINT8)129; // a-acute
               }
             break;
@@ -8523,24 +8523,24 @@ void process_ir_command(UINT8 IrCommand)
             case (FRENCH):
               if (FlashConfig.FlagKeyclick == FLAG_ON)
               {
-                sprintf(String, "Keyclick On - Duree %u ms Repeat1: %u Repeat2: %u", TONE_KEYCLICK_DURATION, TONE_KEYCLICK_REPEAT1, TONE_KEYCLICK_REPEAT2);
+                snprintf(String, sizeof(String), "Keyclick On - Duree %u ms Repeat1: %u Repeat2: %u", TONE_KEYCLICK_DURATION, TONE_KEYCLICK_REPEAT1, TONE_KEYCLICK_REPEAT2);
                 String[17] = (UINT8)0x90; // e - acute.
               }
               else
               {
-                sprintf(String, "Keyclick Off");
+                snprintf(String, sizeof(String), "Keyclick Off");
               }
             break;
 
             case (SPANISH):
               if (FlashConfig.FlagKeyclick == FLAG_ON)
               {
-                sprintf(String, "Clic en clave activado - Duracion %u ms Repeat1: %u Repeat2: %u", TONE_KEYCLICK_DURATION, TONE_KEYCLICK_REPEAT1, TONE_KEYCLICK_REPEAT2);
+                snprintf(String, sizeof(String), "Clic en clave activado - Duracion %u ms Repeat1: %u Repeat2: %u", TONE_KEYCLICK_DURATION, TONE_KEYCLICK_REPEAT1, TONE_KEYCLICK_REPEAT2);
                 String[31] = (UINT8)139; // o - acute.
               }
               else
               {
-                sprintf(String, "Clic en clave desactivado");
+                snprintf(String, sizeof(String), "Clic en clave desactivado");
               }
             break;
 
@@ -8549,11 +8549,11 @@ void process_ir_command(UINT8 IrCommand)
             default:
               if (FlashConfig.FlagKeyclick == FLAG_ON)
               {
-                sprintf(String, "Keyclick On - Duration: %u ms Repeat1: %u Repeat2: %u", TONE_KEYCLICK_DURATION, TONE_KEYCLICK_REPEAT1, TONE_KEYCLICK_REPEAT2);
+                snprintf(String, sizeof(String), "Keyclick On - Duration: %u ms Repeat1: %u Repeat2: %u", TONE_KEYCLICK_DURATION, TONE_KEYCLICK_REPEAT1, TONE_KEYCLICK_REPEAT2);
               }
               else
               {
-                sprintf(String, "Keyclick Off");
+                snprintf(String, sizeof(String), "Keyclick Off");
               }
             break;
 
@@ -8568,39 +8568,39 @@ void process_ir_command(UINT8 IrCommand)
             case (CZECH):
               if (FlashConfig.FlagScrollEnable == FLAG_ON)
               {
-                sprintf(String, "tecek: %u ms.", SCROLL_DOT_TIME);
+                snprintf(String, sizeof(String), "tecek: %u ms.", SCROLL_DOT_TIME);
                 String[2] = (UINT8)136; // c-caron
-                sprintf(String, "Posuv zapnut - opakovani: %u minut   rychlost %s", SCROLL_PERIOD_MINUTE, String);
+                snprintf(String, sizeof(String), "Posuv zapnut - opakovani: %u minut   rychlost %s", SCROLL_PERIOD_MINUTE, String);
                 String[17] = (UINT8)129; // a-acute
                 String[24] = (UINT8)131; // i-acute
               }
               else
               {
-                 sprintf(String, "Posuv vypnut.");
+                 snprintf(String, sizeof(String), "Posuv vypnut.");
               }
             break;
           
             case (FRENCH):
               if (FlashConfig.FlagScrollEnable == FLAG_ON)
               {
-                sprintf(String, "Scrolling On - Periode: %u minutes   Vitesse des dots: %u msec.", SCROLL_PERIOD_MINUTE, SCROLL_DOT_TIME);
+                snprintf(String, sizeof(String), "Scrolling On - Periode: %u minutes   Vitesse des dots: %u msec.", SCROLL_PERIOD_MINUTE, SCROLL_DOT_TIME);
                 String[16] = (UINT8)31;  // e accent aigu.
               }
               else
               {
-                sprintf(String, "Scrolling OFF.");
+                snprintf(String, sizeof(String), "Scrolling OFF.");
               }
             break;
           
             case (SPANISH):
               if (FlashConfig.FlagScrollEnable == FLAG_ON)
               {
-                sprintf(String, "Desplazamiento activado - Duracion: %u minutos   Velodicad de los dots: %u msec.", SCROLL_PERIOD_MINUTE, SCROLL_DOT_TIME);
+                snprintf(String, sizeof(String), "Desplazamiento activado - Duracion: %u minutos   Velodicad de los dots: %u msec.", SCROLL_PERIOD_MINUTE, SCROLL_DOT_TIME);
                 String[32] = (UINT8)139;  // o-acute.
               }
               else
               {
-                sprintf(String, "Desplazamiento desactivado.");
+                snprintf(String, sizeof(String), "Desplazamiento desactivado.");
               }
             break;
           
@@ -8609,11 +8609,11 @@ void process_ir_command(UINT8 IrCommand)
             default:
               if (FlashConfig.FlagScrollEnable == FLAG_ON)
               {
-                sprintf(String, "Scrolling On - Frequency: %u minutes   Dot speed: %u msec.", SCROLL_PERIOD_MINUTE, SCROLL_DOT_TIME);
+                snprintf(String, sizeof(String), "Scrolling On - Frequency: %u minutes   Dot speed: %u msec.", SCROLL_PERIOD_MINUTE, SCROLL_DOT_TIME);
               }
               else
               {
-                sprintf(String, "Scrolling Off.");
+                snprintf(String, sizeof(String), "Scrolling Off.");
               }
             break;
           }
@@ -8627,13 +8627,13 @@ void process_ir_command(UINT8 IrCommand)
             case (CZECH):
               if (FlashConfig.TemperatureUnit == CELSIUS)
               {
-                sprintf(String, "Jedn. teploty: Celsius.   ");
+                snprintf(String, sizeof(String), "Jedn. teploty: Celsius.   ");
                 String[4]  = (UINT8)31;  // e accent aigu.
                 String[13] = (UINT8)31;  // e accent aigu.
               }
               else
               {
-                sprintf(String, "Jedn. teploty: Fahrenheit.   ");
+                snprintf(String, sizeof(String), "Jedn. teploty: Fahrenheit.   ");
                 String[4]  = (UINT8)31;  // e accent aigu.
                 String[13] = (UINT8)31;  // e accent aigu.
               }
@@ -8642,13 +8642,13 @@ void process_ir_command(UINT8 IrCommand)
             case (FRENCH):
               if (FlashConfig.TemperatureUnit == CELSIUS)
               {
-                sprintf(String, "Unite de temperature: Celsius   ");
+                snprintf(String, sizeof(String), "Unite de temperature: Celsius   ");
                 String[4]  = (UINT8)31;  // e accent aigu.
                 String[13] = (UINT8)31;  // e accent aigu.
               }
               else
               {
-                sprintf(String, "Unite de temperature: Fahrenheit   ");
+                snprintf(String, sizeof(String), "Unite de temperature: Fahrenheit   ");
                 String[4]  = (UINT8)31;  // e accent aigu.
                 String[13] = (UINT8)31;  // e accent aigu.
               }
@@ -8657,13 +8657,13 @@ void process_ir_command(UINT8 IrCommand)
             case (SPANISH):
               if (FlashConfig.TemperatureUnit == CELSIUS)
               {
-                sprintf(String, "Unidad de temperatura: Celsius   ");
+                snprintf(String, sizeof(String), "Unidad de temperatura: Celsius   ");
                 String[4]  = (UINT8)31;  // e accent aigu.
                 String[13] = (UINT8)31;  // e accent aigu.
               }
               else
               {
-                sprintf(String, "Unidad de temperatura: Fahrenheit   ");
+                snprintf(String, sizeof(String), "Unidad de temperatura: Fahrenheit   ");
                 String[4]  = (UINT8)31;  // e accent aigu.
                 String[13] = (UINT8)31;  // e accent aigu.
               }
@@ -8674,11 +8674,11 @@ void process_ir_command(UINT8 IrCommand)
             default:
               if (FlashConfig.TemperatureUnit == CELSIUS)
               {
-                sprintf(String, "Temperature unit is Celsius   ");
+                snprintf(String, sizeof(String), "Temperature unit is Celsius   ");
               }
               else
               {
-                sprintf(String, "Temperature unit is Fahrenheit   ");
+                snprintf(String, sizeof(String), "Temperature unit is Fahrenheit   ");
               }
             break;
           }
@@ -8694,29 +8694,29 @@ void process_ir_command(UINT8 IrCommand)
           switch (FlashConfig.Language)
           {
             case (CZECH):
-              sprintf(String, "Jazyk je cestina   ");
+              snprintf(String, sizeof(String), "Jazyk je cestina   ");
               String[9] = (UINT8)136;
             break;
 
             case (ENGLISH):
-              sprintf(String, "Language is English   ");
+              snprintf(String, sizeof(String), "Language is English   ");
             break;
 
             case (FRENCH):
-              sprintf(String, "La langue est le francais   ");
+              snprintf(String, sizeof(String), "La langue est le francais   ");
             break;
 
             case (SPANISH):
-              sprintf(String, "La lengua es el espanol   ");
+              snprintf(String, sizeof(String), "La lengua es el espanol   ");
               String[20] = (UINT8)140; // n-tilde
             break;
 
             case (GERMAN):
-              sprintf(String, "Language is German   ");
+              snprintf(String, sizeof(String), "Language is German   ");
             break;
 
             default:
-              sprintf(String, "Undefined language   ");
+              snprintf(String, sizeof(String), "Undefined language   ");
             break;
           }
           scroll_string(24, String);
@@ -8730,14 +8730,14 @@ void process_ir_command(UINT8 IrCommand)
            case (CZECH):
               if (FlashConfig.TimeDisplayMode == H12)
               {
-                sprintf(String, "12hodinove zobrazeni casu.");
+                snprintf(String, sizeof(String), "12hodinove zobrazeni casu.");
                 String[9] = (UINT8)138; // e-acute
                 String[19] = (UINT8)131; // i-acute
                 String[21] = (UINT8)136; // c-caron
               }
               else
               {
-                sprintf(String, "24hodinove zobrazeni casu.");
+                snprintf(String, sizeof(String), "24hodinove zobrazeni casu.");
                 String[9] = (UINT8)138; // e-acute
                 String[19] = (UINT8)131; // i-acute
                 String[21] = (UINT8)136; // c-caron
@@ -8747,23 +8747,23 @@ void process_ir_command(UINT8 IrCommand)
             case (FRENCH):
               if (FlashConfig.TimeDisplayMode == H12)
               {
-                sprintf(String, "Format d'affichage de l'heure: 12 heures");
+                snprintf(String, sizeof(String), "Format d'affichage de l'heure: 12 heures");
               }
               else
               {
-                sprintf(String, "Format d'affichage de l'heure: 24 heures");
+                snprintf(String, sizeof(String), "Format d'affichage de l'heure: 24 heures");
               }
             break;
 
             case (SPANISH):
               if (FlashConfig.TimeDisplayMode == H12)
               {
-                sprintf(String, "Formato de visualizacion de la hora: 12 horas");
+                snprintf(String, sizeof(String), "Formato de visualizacion de la hora: 12 horas");
                 String[22] = (UINT8)139; // o-acute
               }
               else
               {
-                sprintf(String, "Formato de visualizacion de la hora: 24 horas");
+                snprintf(String, sizeof(String), "Formato de visualizacion de la hora: 24 horas");
                 String[22] = (UINT8)139; // o-acute
               }
             break;
@@ -8773,11 +8773,11 @@ void process_ir_command(UINT8 IrCommand)
             default:
               if (FlashConfig.TimeDisplayMode == H12)
               {
-                sprintf(String, "Time display format: 12-hours");
+                snprintf(String, sizeof(String), "Time display format: 12-hours");
               }
               else
               {
-                sprintf(String, "Time display format: 24-hours");
+                snprintf(String, sizeof(String), "Time display format: 24-hours");
               }
             break;
           }
@@ -8791,17 +8791,17 @@ void process_ir_command(UINT8 IrCommand)
             case (CZECH):
               if (FlashConfig.ChimeMode == CHIME_OFF)
               {
-                sprintf(String, "Hodinovy zvuk je vypnut.");
+                snprintf(String, sizeof(String), "Hodinovy zvuk je vypnut.");
                 String[7] = (UINT8)132; // y-acute
               }
               else if (FlashConfig.ChimeMode == CHIME_ON)
               {
-                sprintf(String, "Hodinovy zvuk je zapnut.");
+                snprintf(String, sizeof(String), "Hodinovy zvuk je zapnut.");
                 String[7] = (UINT8)132; // y-acute
               }
               else if (FlashConfig.ChimeMode == CHIME_DAY)
               {
-                sprintf(String, "Hodinovy zvuk zapnut jen od %u:00 do %u:00.", FlashConfig.ChimeTimeOn, FlashConfig.ChimeTimeOff);
+                snprintf(String, sizeof(String), "Hodinovy zvuk zapnut jen od %u:00 do %u:00.", FlashConfig.ChimeTimeOn, FlashConfig.ChimeTimeOff);
                 String[7] = (UINT8)132; // y-acute
               }
             break;
@@ -8809,32 +8809,32 @@ void process_ir_command(UINT8 IrCommand)
             case (FRENCH):
               if (FlashConfig.ChimeMode == CHIME_OFF)
               {
-                sprintf(String, "Le signal horaire est a Off");
+                snprintf(String, sizeof(String), "Le signal horaire est a Off");
               }
               else if (FlashConfig.ChimeMode == CHIME_ON)
               {
-                sprintf(String, "Le signal horaire est a On");
+                snprintf(String, sizeof(String), "Le signal horaire est a On");
               }
               else if (FlashConfig.ChimeMode == CHIME_DAY)
               {
-                sprintf(String, "Le signal horaire est intermittent, de %u:00 a %u:00", FlashConfig.ChimeTimeOn, FlashConfig.ChimeTimeOff);
+                snprintf(String, sizeof(String), "Le signal horaire est intermittent, de %u:00 a %u:00", FlashConfig.ChimeTimeOn, FlashConfig.ChimeTimeOff);
               }
             break;
 
             case (SPANISH):
               if (FlashConfig.ChimeMode == CHIME_OFF)
               {
-                sprintf(String, "El timbre cada hora esta desactivado");
+                snprintf(String, sizeof(String), "El timbre cada hora esta desactivado");
                 String[23] = (UINT8)129; // a-acute
               }
               else if (FlashConfig.ChimeMode == CHIME_ON)
               {
-                sprintf(String, "El timbre cada hora esta activado");
+                snprintf(String, sizeof(String), "El timbre cada hora esta activado");
                 String[23] = (UINT8)129; // a-acute
               }
               else if (FlashConfig.ChimeMode == CHIME_DAY)
               {
-                sprintf(String, "El timbre cada hora esta en intermitente, de %u:00 a %u:00", FlashConfig.ChimeTimeOn, FlashConfig.ChimeTimeOff);
+                snprintf(String, sizeof(String), "El timbre cada hora esta en intermitente, de %u:00 a %u:00", FlashConfig.ChimeTimeOn, FlashConfig.ChimeTimeOff);
                 String[23] = (UINT8)129; // a-acute
               }
             break;
@@ -8844,15 +8844,15 @@ void process_ir_command(UINT8 IrCommand)
             default:
               if (FlashConfig.ChimeMode == CHIME_OFF)
               {
-                sprintf(String, "Hourly chime is Off");
+                snprintf(String, sizeof(String), "Hourly chime is Off");
               }
               else if (FlashConfig.ChimeMode == CHIME_ON)
               {
-                sprintf(String, "Hourly chime is On");
+                snprintf(String, sizeof(String), "Hourly chime is On");
               }
               else if (FlashConfig.ChimeMode == CHIME_DAY)
               {
-                sprintf(String, "Hourly chime is intermittent, from %u:00 to %u:00", FlashConfig.ChimeTimeOn, FlashConfig.ChimeTimeOff);
+                snprintf(String, sizeof(String), "Hourly chime is intermittent, from %u:00 to %u:00", FlashConfig.ChimeTimeOn, FlashConfig.ChimeTimeOff);
               }
             break;
           }
@@ -8866,66 +8866,66 @@ void process_ir_command(UINT8 IrCommand)
            case (CZECH):
               if (FlashConfig.NightLightMode == NIGHT_LIGHT_OFF)
               {
-                sprintf(String, "Nocni svetlo je vypnuto.");
+                snprintf(String, sizeof(String), "Nocni svetlo je vypnuto.");
                 String[3] = (UINT8)136; // c-caron
                 String[4] = (UINT8)131; // i-acute
                 String[8] = (UINT8)130; // e-caron
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_ON)
               {
-                sprintf(String, "Nocni svetlo je zapnuto.");
+                snprintf(String, sizeof(String), "Nocni svetlo je zapnuto.");
                 String[3] = (UINT8)136; // c-caron
                 String[4] = (UINT8)131; // i-acute
                 String[8] = (UINT8)130; // e-caron
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_NIGHT)
               {
-                sprintf(String, "Nocni svetlo zapnuto jen od %u:00 do %u:00.", FlashConfig.NightLightTimeOn, FlashConfig.NightLightTimeOff);
+                snprintf(String, sizeof(String), "Nocni svetlo zapnuto jen od %u:00 do %u:00.", FlashConfig.NightLightTimeOn, FlashConfig.NightLightTimeOff);
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_AUTO)
               {
-                sprintf(String, "Nocni svetlo je zapnuto automaticky.");
+                snprintf(String, sizeof(String), "Nocni svetlo je zapnuto automaticky.");
               }
             break;
  
            case (FRENCH):
               if (FlashConfig.NightLightMode == NIGHT_LIGHT_OFF)
               {
-                sprintf(String, "La veilleuse de nuit est a Off");
+                snprintf(String, sizeof(String), "La veilleuse de nuit est a Off");
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_ON)
               {
-                sprintf(String, "La veilleuse de nuit est a On");
+                snprintf(String, sizeof(String), "La veilleuse de nuit est a On");
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_NIGHT)
               {
-                sprintf(String, "La veilleuse de nuit est intermittente, de %u:00 a %u:00", FlashConfig.NightLightTimeOn, FlashConfig.NightLightTimeOff);
+                snprintf(String, sizeof(String), "La veilleuse de nuit est intermittente, de %u:00 a %u:00", FlashConfig.NightLightTimeOn, FlashConfig.NightLightTimeOff);
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_AUTO)
               {
-                sprintf(String, "La veilleuse de nuit est automatique");
+                snprintf(String, sizeof(String), "La veilleuse de nuit est automatique");
               }
             break;
  
            case (SPANISH):
               if (FlashConfig.NightLightMode == NIGHT_LIGHT_OFF)
               {
-                sprintf(String, "La luz nocturna esta desactivado");
+                snprintf(String, sizeof(String), "La luz nocturna esta desactivado");
                 String[19] = (UINT8)129; // a-acute
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_ON)
               {
-                sprintf(String, "La luz nocturna esta activado");
+                snprintf(String, sizeof(String), "La luz nocturna esta activado");
                 String[19] = (UINT8)129; // a-acute
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_NIGHT)
               {
-                sprintf(String, "La luz nocturna esta en intermitente, de %u:00 a %u:00", FlashConfig.NightLightTimeOn, FlashConfig.NightLightTimeOff);
+                snprintf(String, sizeof(String), "La luz nocturna esta en intermitente, de %u:00 a %u:00", FlashConfig.NightLightTimeOn, FlashConfig.NightLightTimeOff);
                 String[19] = (UINT8)129; // a-acute
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_AUTO)
               {
-                sprintf(String, "La luz nocturna esta en automatica");
+                snprintf(String, sizeof(String), "La luz nocturna esta en automatica");
                 String[19] = (UINT8)129; // a-acute
                 String[29] = (UINT8)129; // a-acute
               }
@@ -8936,19 +8936,19 @@ void process_ir_command(UINT8 IrCommand)
             default:
               if (FlashConfig.NightLightMode == NIGHT_LIGHT_OFF)
               {
-                sprintf(String, "Night light is Off");
+                snprintf(String, sizeof(String), "Night light is Off");
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_ON)
               {
-                sprintf(String, "Night light is On");
+                snprintf(String, sizeof(String), "Night light is On");
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_NIGHT)
               {
-                sprintf(String, "Night light is intermittent, from %u:00 to %u:00", FlashConfig.NightLightTimeOn, FlashConfig.NightLightTimeOff);
+                snprintf(String, sizeof(String), "Night light is intermittent, from %u:00 to %u:00", FlashConfig.NightLightTimeOn, FlashConfig.NightLightTimeOff);
               }
               else if (FlashConfig.NightLightMode == NIGHT_LIGHT_AUTO)
               {
-                sprintf(String, "Night light is automatic");
+                snprintf(String, sizeof(String), "Night light is automatic");
               }
             break;
           }
@@ -8962,15 +8962,15 @@ void process_ir_command(UINT8 IrCommand)
             case (CZECH):
               if (FlashConfig.FlagAutoBrightness == FLAG_ON)
               {
-                sprintf(String, "zobrazeni");
+                snprintf(String, sizeof(String), "zobrazeni");
                 String[9] = (UINT8)131;  // i-acute
-                sprintf(String, "Automaticke nastaveni jasu je zapnuto. Jas: %u   hystereze: %u   %s: %u%c.", adc_read_light(), AverageLightLevel, String, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
+                snprintf(String, sizeof(String), "Automaticke nastaveni jasu je zapnuto. Jas: %u   hystereze: %u   %s: %u%c.", adc_read_light(), AverageLightLevel, String, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
                 String[10] = (UINT8)138;  // e-acute
                 String[20] = (UINT8)131;  // i-acute
               }
               else
               {
-                sprintf(String, "Automaticke nastaveni jasu je vypnuto.");
+                snprintf(String, sizeof(String), "Automaticke nastaveni jasu je vypnuto.");
                 String[10] = (UINT8)138;  // e-acute
                 String[20] = (UINT8)131;  // i-acute
               }
@@ -8979,13 +8979,13 @@ void process_ir_command(UINT8 IrCommand)
             case (FRENCH):
               if (FlashConfig.FlagAutoBrightness == FLAG_ON)
               {
-                sprintf(String, "Intensite automatique est a On   Luminosite: %u   Hysteresis: %u   Affichage: %u%c", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
+                snprintf(String, sizeof(String), "Intensite automatique est a On   Luminosite: %u   Hysteresis: %u   Affichage: %u%c", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
                 String[8]  = (UINT8)31;  // e accent aigu.
                 String[41] = (UINT8)31;  // e accent aigu.
               }
               else
               {
-                sprintf(String, "Intensite automatique est a Off");
+                snprintf(String, sizeof(String), "Intensite automatique est a Off");
                 String[8] = (UINT8)31; // e accent aigu.
               }
             break;
@@ -8993,13 +8993,13 @@ void process_ir_command(UINT8 IrCommand)
             case (SPANISH):
               if (FlashConfig.FlagAutoBrightness == FLAG_ON)
               {
-                sprintf(String, "Intensidad automatica esta activada   Luminosidad: %u   Hysteresis: %u   Monitor: %u%c", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
+                snprintf(String, sizeof(String), "Intensidad automatica esta activada   Luminosidad: %u   Hysteresis: %u   Monitor: %u%c", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
                 String[16] = (UINT8)129; // a-acute
                 String[25] = (UINT8)129; // a-acute
               }
               else
               {
-                sprintf(String, "Intensidad automatica esta desactivada");
+                snprintf(String, sizeof(String), "Intensidad automatica esta desactivada");
                 String[16] = (UINT8)129; // a-acute
                 String[25] = (UINT8)129; // a-acute
               }
@@ -9010,11 +9010,11 @@ void process_ir_command(UINT8 IrCommand)
             default:
               if (FlashConfig.FlagAutoBrightness == FLAG_ON)
               {
-                sprintf(String, "Auto brightness is On   Light level: %u   Hysteresis: %u   Display: %u%c", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
+                snprintf(String, sizeof(String), "Auto brightness is On   Light level: %u   Hysteresis: %u   Display: %u%c", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
               }
               else
               {
-                sprintf(String, "Auto brightness is Off");
+                snprintf(String, sizeof(String), "Auto brightness is Off");
               }
             break;
          }
@@ -9041,13 +9041,13 @@ void process_ir_command(UINT8 IrCommand)
           case (ENGLISH):
           case (GERMAN):
           default:
-            sprintf(String, "%s %u: %s   /   ", MonthName[FlashConfig.Language][CurrentMonth], CurrentDayOfMonth, CalendarEvent[Loop1UInt8].Description);
+            snprintf(String, sizeof(String), "%s %u: %s   /   ", MonthName[FlashConfig.Language][CurrentMonth], CurrentDayOfMonth, CalendarEvent[Loop1UInt8].Description);
           break;
 
           case (CZECH):
           case (FRENCH):
           case (SPANISH):
-            sprintf(String, "%u %s: %s   /   ", CurrentDayOfMonth, MonthName[FlashConfig.Language][CurrentMonth], CalendarEvent[Loop1UInt8].Description);
+            snprintf(String, sizeof(String), "%u %s: %s   /   ", CurrentDayOfMonth, MonthName[FlashConfig.Language][CurrentMonth], CalendarEvent[Loop1UInt8].Description);
           break;
         }
         scroll_string(24, String);
@@ -9059,7 +9059,7 @@ void process_ir_command(UINT8 IrCommand)
       case (CZECH):
         if (Dum1UInt8 == 0)
         {
-          sprintf(String, "Dnes zadna udalost.");
+          snprintf(String, sizeof(String), "Dnes zadna udalost.");
           String[5]  = (UINT8)137;  // z-caron
           String[6]  = (UINT8)129;  // a-acute
           String[9]  = (UINT8)129;  // a-acute
@@ -9069,14 +9069,14 @@ void process_ir_command(UINT8 IrCommand)
         {
           if (Dum1UInt8 == 1)
           {
-            sprintf(String, "Dnes 1 udalost.");
+            snprintf(String, sizeof(String), "Dnes 1 udalost.");
             String[9] = (UINT8)129; // a-acute
           }
           else
           {
-            sprintf(String, "udalosti");
+            snprintf(String, sizeof(String), "udalosti");
             String[2] = (UINT8)129; // a-acute
-            sprintf(String, "Dnes %u %s.", Dum1UInt8, String);
+            snprintf(String, sizeof(String), "Dnes %u %s.", Dum1UInt8, String);
           }
         }
       break;
@@ -9084,7 +9084,7 @@ void process_ir_command(UINT8 IrCommand)
       case (FRENCH):
         if (Dum1UInt8 == 0)
         {
-          sprintf(String, "Aucun evenement aujourd'hui");
+          snprintf(String, sizeof(String), "Aucun evenement aujourd'hui");
           String[6] = (UCHAR)31; // e accent aigu.
           String[8] = (UCHAR)31; // e accent aigu
         }
@@ -9092,13 +9092,13 @@ void process_ir_command(UINT8 IrCommand)
         {
           if (Dum1UInt8 == 1)
           {
-            sprintf(String, "1 evenement aujourd'hui");
+            snprintf(String, sizeof(String), "1 evenement aujourd'hui");
             String[2] = (UCHAR)31; // e accent aigu.
             String[4] = (UCHAR)31; // e accent aigu
           }
           else
           {
-            sprintf(String, "%u evenements aujourd'hui", Dum1UInt8);
+            snprintf(String, sizeof(String), "%u evenements aujourd'hui", Dum1UInt8);
             String[strlen(String) - 20] = (UCHAR)31; // e accent aigu.
             String[strlen(String) - 22] = (UCHAR)31; // e accent aigu
           }
@@ -9108,17 +9108,17 @@ void process_ir_command(UINT8 IrCommand)
       case (SPANISH):
         if (Dum1UInt8 == 0)
         {
-          sprintf(String, "No hay eventos hoy");
+          snprintf(String, sizeof(String), "No hay eventos hoy");
         }
         else
         {
           if (Dum1UInt8 == 1)
           {
-            sprintf(String, "Un evento hoy");
+            snprintf(String, sizeof(String), "Un evento hoy");
           }
           else
           {
-            sprintf(String, "%u eventos hoy", Dum1UInt8);
+            snprintf(String, sizeof(String), "%u eventos hoy", Dum1UInt8);
           }
         }
       break;
@@ -9127,12 +9127,12 @@ void process_ir_command(UINT8 IrCommand)
       case (GERMAN):
       default:
         if (Dum1UInt8 == 0)
-          sprintf(String, "No event today");
+          snprintf(String, sizeof(String), "No event today");
         else if (Dum1UInt8 == 1)
-          sprintf(String, "1 event today");
+          snprintf(String, sizeof(String), "1 event today");
         else
         {
-          sprintf(String, "%u events today", Dum1UInt8);
+          snprintf(String, sizeof(String), "%u events today", Dum1UInt8);
         }
       break;
     }
@@ -9206,13 +9206,13 @@ void process_ir_command(UINT8 IrCommand)
             case (CZECH):
             case (FRENCH):
             case (SPANISH):
-              sprintf(String, "%u %s: %s   /   ", DumDayOfMonth, MonthName[FlashConfig.Language][DumMonth], CalendarEvent[Loop2UInt8].Description);
+              snprintf(String, sizeof(String), "%u %s: %s   /   ", DumDayOfMonth, MonthName[FlashConfig.Language][DumMonth], CalendarEvent[Loop2UInt8].Description);
             break;
  
             case (ENGLISH):
             case (GERMAN):
             default:
-              sprintf(String, "%s %u: %s   /   ", MonthName[FlashConfig.Language][DumMonth], DumDayOfMonth, CalendarEvent[Loop2UInt8].Description);
+              snprintf(String, sizeof(String), "%s %u: %s   /   ", MonthName[FlashConfig.Language][DumMonth], DumDayOfMonth, CalendarEvent[Loop2UInt8].Description);
             break;
           }
           scroll_string(24, String);
@@ -9240,7 +9240,7 @@ void process_ir_command(UINT8 IrCommand)
       case (CZECH):
         if (Dum1UInt8 == 0)
         {
-          sprintf(String, "   Tento tyden zadna udalost.");
+          snprintf(String, sizeof(String), "   Tento tyden zadna udalost.");
           String[10] = (UINT8)132; // y-acute
           String[15] = (UINT8)137; // z-caron
           String[16] = (UINT8)129; // a-acute
@@ -9251,17 +9251,17 @@ void process_ir_command(UINT8 IrCommand)
         {
           if (Dum1UInt8 == 1)
           {
-            sprintf(String, "   Tento tyden 1 udalost.");
+            snprintf(String, sizeof(String), "   Tento tyden 1 udalost.");
             String[10] = (UINT8)132; // y-acute
             String[15] = (UINT8)137; // z-caron
             String[19] = (UINT8)129; // a-acute
           }
           else
           {
-            sprintf(String, "udalosti");
+            snprintf(String, sizeof(String), "udalosti");
             String[2] = (UINT8)129; // a-acute
             String[8] = (UINT8)131; // i-acute
-            sprintf(String, "   Tento tyden %u %s.", Dum1UInt8, String);
+            snprintf(String, sizeof(String), "   Tento tyden %u %s.", Dum1UInt8, String);
             String[10] = (UINT8)132; // y-acute
          }
         }
@@ -9270,7 +9270,7 @@ void process_ir_command(UINT8 IrCommand)
       case (FRENCH):
         if (Dum1UInt8 == 0)
         {
-          sprintf(String, "   Aucun evenement cette semaine");
+          snprintf(String, sizeof(String), "   Aucun evenement cette semaine");
           String[9]  = (UCHAR)31; // e accent aigu.
           String[11] = (UCHAR)31; // e accent aigu
         }
@@ -9278,13 +9278,13 @@ void process_ir_command(UINT8 IrCommand)
         {
           if (Dum1UInt8 == 1)
           {
-            sprintf(String, "   1 evenement cette semaine");
+            snprintf(String, sizeof(String), "   1 evenement cette semaine");
             String[5] = (UCHAR)31; // e accent aigu.
             String[7] = (UCHAR)31; // e accent aigu
           }
           else
           {
-            sprintf(String, "   %u evenements cette semaine", Dum1UInt8);
+            snprintf(String, sizeof(String), "   %u evenements cette semaine", Dum1UInt8);
             String[strlen(String) - 22] = (UCHAR)31; // e accent aigu.
             String[strlen(String) - 24] = (UCHAR)31; // e accent aigu
           }
@@ -9294,17 +9294,17 @@ void process_ir_command(UINT8 IrCommand)
       case (SPANISH):
         if (Dum1UInt8 == 0)
         {
-          sprintf(String, "   No hay eventos esta semana");
+          snprintf(String, sizeof(String), "   No hay eventos esta semana");
         }
         else
         {
           if (Dum1UInt8 == 1)
           {
-            sprintf(String, "   1 evento esta semana");
+            snprintf(String, sizeof(String), "   1 evento esta semana");
           }
           else
           {
-            sprintf(String, "   %u eventos esta semana", Dum1UInt8);
+            snprintf(String, sizeof(String), "   %u eventos esta semana", Dum1UInt8);
           }
         }
       break;
@@ -9313,16 +9313,16 @@ void process_ir_command(UINT8 IrCommand)
       case (GERMAN):
       default:
         if (Dum1UInt8 == 0)
-          sprintf(String, "   No event this week");
+          snprintf(String, sizeof(String), "   No event this week");
         else
         {
           if (Dum1UInt8 == 1)
           {
-            sprintf(String, "   1 event this week");
+            snprintf(String, sizeof(String), "   1 event this week");
           }
           else
           {
-            sprintf(String, "   %u events this week", Dum1UInt8);
+            snprintf(String, sizeof(String), "   %u events this week", Dum1UInt8);
           }
         }
       break;
@@ -9446,22 +9446,22 @@ void process_scroll_queue(void)
           switch (FlashConfig.Language)
           {
             case (CZECH):
-              sprintf(String, "Jas: %u   hystereze: %u   displej: %u%c.    ", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
+              snprintf(String, sizeof(String), "Jas: %u   hystereze: %u   displej: %u%c.    ", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
             break;
 
             case (FRENCH):
-              sprintf(String, "Luminosite: %u   Hysteresis: %u   Affichage: %u%c    ", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
+              snprintf(String, sizeof(String), "Luminosite: %u   Hysteresis: %u   Affichage: %u%c    ", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
               String[9] = (UINT8)31; // e accent aigu.
             break;
 
             case (SPANISH):
-              sprintf(String, "Luminosidad: %u   Hysteresis: %u   Monitor: %u%c    ", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
+              snprintf(String, sizeof(String), "Luminosidad: %u   Hysteresis: %u   Monitor: %u%c    ", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
             break;
 
             case (ENGLISH):
             case (GERMAN):
             default:
-              sprintf(String, "Ambient light: %u   Hysteresis: %u   Display: %u%c    ", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
+              snprintf(String, sizeof(String), "Ambient light: %u   Hysteresis: %u   Display: %u%c    ", adc_read_light(), AverageLightLevel, Pwm[PWM_BRIGHTNESS].DutyCycle, '%');
             break;
           }
           scroll_string(24, String);
@@ -9472,7 +9472,7 @@ void process_scroll_queue(void)
         case (TAG_BME280_DEVICE_ID):
           #ifdef BME280_SUPPORT  // if a BME280 outside temperature, humidity and atmospheric pressure sensor has been installed by user.
           Dum1UInt8 = bme280_read_device_id();
-          sprintf(String, "BME280 device ID: 0x%2.2X    ", Dum1UInt8);
+          snprintf(String, sizeof(String), "BME280 device ID: 0x%2.2X    ", Dum1UInt8);
           scroll_string(24, String);
           #endif  // BME280_SUPPORT
         break;
@@ -9500,21 +9500,21 @@ void process_scroll_queue(void)
               switch (FlashConfig.Language)
               {
                 case (CZECH):
-                  sprintf(String, "Venku: %2.2f %cC, %2.2f %%, %4.2f hPa.", Bme280Data.TemperatureC, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
+                  snprintf(String, sizeof(String), "Venku: %2.2f %cC, %2.2f %%, %4.2f hPa.", Bme280Data.TemperatureC, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
                  break;
 
                 case (FRENCH):
-                  sprintf(String, "Ext: %2.2f%cC  Hum: %2.2f%%  Pression: %4.2f hPa ", Bme280Data.TemperatureC, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
+                  snprintf(String, sizeof(String), "Ext: %2.2f%cC  Hum: %2.2f%%  Pression: %4.2f hPa ", Bme280Data.TemperatureC, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
                 break;
 
                 case (SPANISH):
-                  sprintf(String, "Ext: %2.2f%cC  Hum: %2.2f%%  Presion: %4.2f hPa ", Bme280Data.TemperatureC, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
+                  snprintf(String, sizeof(String), "Ext: %2.2f%cC  Hum: %2.2f%%  Presion: %4.2f hPa ", Bme280Data.TemperatureC, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
                   String[34] = (UINT8)139; // o-acute
                 break;
 
                 case (ENGLISH):
                 default:
-                  sprintf(String, "Out: %2.2f%cC  Hum: %2.2f%%  Pressure: %4.2f hPa ", Bme280Data.TemperatureC, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
+                  snprintf(String, sizeof(String), "Out: %2.2f%cC  Hum: %2.2f%%  Pressure: %4.2f hPa ", Bme280Data.TemperatureC, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
                 break;
 
               }
@@ -9525,21 +9525,21 @@ void process_scroll_queue(void)
               switch (FlashConfig.Language)
               {
                 case (CZECH):
-                  sprintf(String, "Venku: %2.2f %cF, %2.2f %%, %4.2f hPa.", Bme280Data.TemperatureF, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
+                  snprintf(String, sizeof(String), "Venku: %2.2f %cF, %2.2f %%, %4.2f hPa.", Bme280Data.TemperatureF, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
                 break;
 
                 case (FRENCH):
-                  sprintf(String, "Ext: %2.2f%cF  Hum: %2.2f%%  Pression: %4.2f hPa ", Bme280Data.TemperatureF, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
+                  snprintf(String, sizeof(String), "Ext: %2.2f%cF  Hum: %2.2f%%  Pression: %4.2f hPa ", Bme280Data.TemperatureF, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
                 break;
 
                 case (SPANISH):
-                  sprintf(String, "Ext: %2.2f%cF  Hum: %2.2f%%  Presion: %4.2f hPa ", Bme280Data.TemperatureF, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
+                  snprintf(String, sizeof(String), "Ext: %2.2f%cF  Hum: %2.2f%%  Presion: %4.2f hPa ", Bme280Data.TemperatureF, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
                   String[34] = (UINT8)139; // o-acute
                 break;
 
                 case (ENGLISH):
                 default:
-                  sprintf(String, "Out: %2.2f%cF  Hum: %2.2f%%  Pressure: %4.2f hPa ", Bme280Data.TemperatureF, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
+                  snprintf(String, sizeof(String), "Out: %2.2f%cF  Hum: %2.2f%%  Pressure: %4.2f hPa ", Bme280Data.TemperatureF, 0x80, Bme280Data.Humidity, Bme280Data.Pressure);
                 break;
               }
             }
@@ -9554,7 +9554,7 @@ void process_scroll_queue(void)
           }
 
           // For statistic purposes, display the cumulative number of errors while reading BME280 data.
-          sprintf(String, " [%lu/%lu]    ", Bme280Data.Bme280Errors, Bme280Data.Bme280ReadCycles);
+          snprintf(String, sizeof(String), " [%lu/%lu]    ", Bme280Data.Bme280Errors, Bme280Data.Bme280ReadCycles);
           if (DebugBitMask & DEBUG_BME280)
           {
             uart_send(__LINE__, String);
@@ -9569,7 +9569,7 @@ void process_scroll_queue(void)
 
         case (TAG_WIFI_CREDENTIALS):
           /* Scroll Wi-Fi credentials saved in flash memory. */
-          sprintf(String, "SSID: [%s]   Pwd: [%s]", FlashConfig.SSID, FlashConfig.Password);
+          snprintf(String, sizeof(String), "SSID: [%s]   Pwd: [%s]", FlashConfig.SSID, FlashConfig.Password);
           scroll_string(24, String);
         break;
 
@@ -9585,7 +9585,7 @@ void process_scroll_queue(void)
 
         case (TAG_DEBUG):
           /* For debug purposes. Display a few variables while implementing DST support. */
-          sprintf(String, "L: %2.2X  FSTDoM: %2.2X  FSTM: %2.2X    ", FlashConfig.Language, FlagSetupClock[SETUP_DAY_OF_MONTH], FlagSetupClock[SETUP_MONTH]);
+          snprintf(String, sizeof(String), "L: %2.2X  FSTDoM: %2.2X  FSTM: %2.2X    ", FlashConfig.Language, FlagSetupClock[SETUP_DAY_OF_MONTH], FlagSetupClock[SETUP_MONTH]);
           scroll_string(15, String);
         break;
 
@@ -9675,7 +9675,7 @@ void process_scroll_queue(void)
 
           /* No matter if we scroll temperature data or if DHT22 read cycle failed (in which case we don't scroll temperature data),
              in all cases, let's display the total number or DHT22 read errors on the total number of DHT22 read cycles. */
-          sprintf(&TempString[strlen(TempString)], " (%lu/%lu)    ", DhtData.DhtErrors, DhtData.DhtReadCycles);
+          snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), " (%lu/%lu)    ", DhtData.DhtErrors, DhtData.DhtReadCycles);
           scroll_string(24, TempString);
           #endif  // DHT_SUPPORT
         break;
@@ -9690,12 +9690,12 @@ void process_scroll_queue(void)
           if (FlashConfig.TemperatureUnit == CELSIUS)
           {
             /* ...in Celsius. */
-            sprintf(String, "RTC IC: %2.2f%cC    ", Temperature, 0x80);
+            snprintf(String, sizeof(String), "RTC IC: %2.2f%cC    ", Temperature, 0x80);
           }
           else
           {
             /* ...or in Fahrenheit. */
-            sprintf(String, "RTC IC:  %2.2f%cF    ", Temperature, 0x80);
+            snprintf(String, sizeof(String), "RTC IC:  %2.2f%cF    ", Temperature, 0x80);
           }
           scroll_string(24, String);
         break;
@@ -9712,7 +9712,7 @@ void process_scroll_queue(void)
             case (CZECH):
               if (FlashConfig.DSTCountry == DST_NONE)
               {
-                sprintf(String, "Funkce letniho casu je vypnuta.");
+                snprintf(String, sizeof(String), "Funkce letniho casu je vypnuta.");
                 String[11] = (UINT8)131; // i-acute
                 String[15] = (UINT8)136; // c-caron
               }
@@ -9721,76 +9721,76 @@ void process_scroll_queue(void)
                 switch(FlashConfig.DSTCountry)
                 {
                   case (DST_AUSTRALIA):
-                    sprintf(String, "Letni cas: Australie");
+                    snprintf(String, sizeof(String), "Letni cas: Australie");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                     String[16] = (UINT8)129; // a-acute
                   break;
 
                   case (DST_AUSTRALIA_HOWE):
-                    sprintf(String, "Letni cas: Australie Howe");
+                    snprintf(String, sizeof(String), "Letni cas: Australie Howe");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                     String[16] = (UINT8)129; // a-acute
                   break;
 
                   case (DST_CHILE):
-                    sprintf(String, "Letni cas: Cile");
+                    snprintf(String, sizeof(String), "Letni cas: Cile");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                     String[12] = (UINT8)136; // c-caron
                   break;
 
                   case (DST_CUBA):
-                    sprintf(String, "Letni cas: Kuba");
+                    snprintf(String, sizeof(String), "Letni cas: Kuba");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                   break;
 
                   case (DST_EUROPE):
-                    sprintf(String, "Letni cas: Evropa");
+                    snprintf(String, sizeof(String), "Letni cas: Evropa");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                   break;
 
                   case (DST_ISRAEL):
-                    sprintf(String, "Letni cas: Izrael");
+                    snprintf(String, sizeof(String), "Letni cas: Izrael");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                   break;
 
                   case (DST_LEBANON):
-                    sprintf(String, "Letni cas: Libanon");
+                    snprintf(String, sizeof(String), "Letni cas: Libanon");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                   break;
 
                   case (DST_MOLDOVA):
-                    sprintf(String, "Letni cas: Moldavie");
+                    snprintf(String, sizeof(String), "Letni cas: Moldavie");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                   break;
 
                   case (DST_NEW_ZEALAND):
-                    sprintf(String, "Letni cas: Novy Zeland");
+                    snprintf(String, sizeof(String), "Letni cas: Novy Zeland");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                   break;
 
                   case (DST_NORTH_AMERICA):
-                    sprintf(String, "Letni cas: Severni Amerika");
+                    snprintf(String, sizeof(String), "Letni cas: Severni Amerika");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                   break;
 
                   case (DST_PALESTINE):
-                    sprintf(String, "Letni cas: Palestina");
+                    snprintf(String, sizeof(String), "Letni cas: Palestina");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                  break;
 
                   case (DST_PARAGUAY):
-                    sprintf(String, "Letni cas: Paraguay");
+                    snprintf(String, sizeof(String), "Letni cas: Paraguay");
                     String[4] = (UINT8)131; // i-acute
                     String[6] = (UINT8)136; // c-caron
                   break;
@@ -9816,7 +9816,7 @@ void process_scroll_queue(void)
             case (FRENCH):
               if (FlashConfig.DSTCountry == DST_NONE)
               {
-                sprintf(String, "Heure avancee non supportee    ");
+                snprintf(String, sizeof(String), "Heure avancee non supportee    ");
                 String[11] = (UINT8)31;  // e accent aigu.
                 String[25] = (UINT8)31;  // e accent aigu.
               }
@@ -9825,64 +9825,64 @@ void process_scroll_queue(void)
                 switch(FlashConfig.DSTCountry)
                 {
                   case (DST_AUSTRALIA):
-                    sprintf(String, "Heure avancee: Australie");
+                    snprintf(String, sizeof(String), "Heure avancee: Australie");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_AUSTRALIA_HOWE):
-                    sprintf(String, "Heure avancee: Australie Howe");
+                    snprintf(String, sizeof(String), "Heure avancee: Australie Howe");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_CHILE):
-                    sprintf(String, "Heure avancee: Chili");
+                    snprintf(String, sizeof(String), "Heure avancee: Chili");
                     String[11] = (UINT8)31;  // e accent aigu.
                    break;
 
                   case (DST_CUBA):
-                    sprintf(String, "Heure avancee: Cuba");
+                    snprintf(String, sizeof(String), "Heure avancee: Cuba");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_EUROPE):
-                    sprintf(String, "Heure avancee: Europe");
+                    snprintf(String, sizeof(String), "Heure avancee: Europe");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_ISRAEL):
-                    sprintf(String, "Heure avancee: Israel");
+                    snprintf(String, sizeof(String), "Heure avancee: Israel");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_LEBANON):
-                    sprintf(String, "Heure avancee: Liban");
+                    snprintf(String, sizeof(String), "Heure avancee: Liban");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_MOLDOVA):
-                    sprintf(String, "Heure avancee: Moldavie");
+                    snprintf(String, sizeof(String), "Heure avancee: Moldavie");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_NEW_ZEALAND):
-                    sprintf(String, "Heure avancee: Nouvelle-Zelande");
+                    snprintf(String, sizeof(String), "Heure avancee: Nouvelle-Zelande");
                     String[11] = (UINT8)31;  // e accent aigu.
                     String[25] = (UINT8)31;  // e accent aigu.
                  break;
 
                   case (DST_NORTH_AMERICA):
-                    sprintf(String, "Heure avancee: Amerique du Nord");
+                    snprintf(String, sizeof(String), "Heure avancee: Amerique du Nord");
                     String[11] = (UINT8)31;  // e accent aigu.
                     String[17] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_PALESTINE):
-                    sprintf(String, "Heure avancee: Palestine");
+                    snprintf(String, sizeof(String), "Heure avancee: Palestine");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
 
                   case (DST_PARAGUAY):
-                    sprintf(String, "Heure avancee: Paraguay");
+                    snprintf(String, sizeof(String), "Heure avancee: Paraguay");
                     String[11] = (UINT8)31;  // e accent aigu.
                   break;
                 }
@@ -9902,60 +9902,60 @@ void process_scroll_queue(void)
             case (SPANISH):
               if (FlashConfig.DSTCountry == DST_NONE)
               {
-                sprintf(String, "Horario de verano no compatible    ");
+                snprintf(String, sizeof(String), "Horario de verano no compatible    ");
               }
               else
               {
                 switch(FlashConfig.DSTCountry)
                 {
                   case (DST_AUSTRALIA):
-                    sprintf(String, "Horario de verano: Australia");
+                    snprintf(String, sizeof(String), "Horario de verano: Australia");
                   break;
 
                   case (DST_AUSTRALIA_HOWE):
-                    sprintf(String, "Horario de verano: Australia Howe");
+                    snprintf(String, sizeof(String), "Horario de verano: Australia Howe");
                   break;
 
                   case (DST_CHILE):
-                    sprintf(String, "Horario de verano: Chile");
+                    snprintf(String, sizeof(String), "Horario de verano: Chile");
                    break;
 
                   case (DST_CUBA):
-                    sprintf(String, "Horario de verano: Cuba");
+                    snprintf(String, sizeof(String), "Horario de verano: Cuba");
                   break;
 
                   case (DST_EUROPE):
-                    sprintf(String, "Horario de verano: Europa");
+                    snprintf(String, sizeof(String), "Horario de verano: Europa");
                   break;
 
                   case (DST_ISRAEL):
-                    sprintf(String, "Horario de verano: Israel");
+                    snprintf(String, sizeof(String), "Horario de verano: Israel");
                   break;
 
                   case (DST_LEBANON):
-                    sprintf(String, "Horario de verano: Libano");
+                    snprintf(String, sizeof(String), "Horario de verano: Libano");
                     String[20] = (UINT8)131;  // i-acute.
                   break;
 
                   case (DST_MOLDOVA):
-                    sprintf(String, "Horario de verano: Moldova");
+                    snprintf(String, sizeof(String), "Horario de verano: Moldova");
                   break;
 
                   case (DST_NEW_ZEALAND):
-                    sprintf(String, "Horario de verano: Nueva Zelandia");
+                    snprintf(String, sizeof(String), "Horario de verano: Nueva Zelandia");
                  break;
 
                   case (DST_NORTH_AMERICA):
-                    sprintf(String, "Horario de verano: America del Norte");
+                    snprintf(String, sizeof(String), "Horario de verano: America del Norte");
                     String[21] = (UINT8)31;  // e-acute
                   break;
 
                   case (DST_PALESTINE):
-                    sprintf(String, "Horario de verano: Palestina");
+                    snprintf(String, sizeof(String), "Horario de verano: Palestina");
                   break;
 
                   case (DST_PARAGUAY):
-                    sprintf(String, "Horario de verano: Paraguay");
+                    snprintf(String, sizeof(String), "Horario de verano: Paraguay");
                   break;
                 }
  
@@ -9975,58 +9975,58 @@ void process_scroll_queue(void)
             default:
               if (FlashConfig.DSTCountry == DST_NONE)
               {
-                sprintf(String, "No support for daylight saving time    ");
+                snprintf(String, sizeof(String), "No support for daylight saving time    ");
               }
               else
               {
                 switch(FlashConfig.DSTCountry)
                 {
                   case (DST_AUSTRALIA):
-                    sprintf(String, "DST setting: Australia");
+                    snprintf(String, sizeof(String), "DST setting: Australia");
                   break;
 
                   case (DST_AUSTRALIA_HOWE):
-                    sprintf(String, "DST setting: Australia Howe");
+                    snprintf(String, sizeof(String), "DST setting: Australia Howe");
                   break;
 
                   case (DST_CHILE):
-                    sprintf(String, "DST setting: Chile");
+                    snprintf(String, sizeof(String), "DST setting: Chile");
                   break;
 
                   case (DST_CUBA):
-                    sprintf(String, "DST setting: Cuba");
+                    snprintf(String, sizeof(String), "DST setting: Cuba");
                   break;
 
                   case (DST_EUROPE):
-                    sprintf(String, "DST setting: Europe");
+                    snprintf(String, sizeof(String), "DST setting: Europe");
                   break;
 
                   case (DST_ISRAEL):
-                    sprintf(String, "DST setting: Israel");
+                    snprintf(String, sizeof(String), "DST setting: Israel");
                   break;
 
                   case (DST_LEBANON):
-                    sprintf(String, "DST setting: Lebanon");
+                    snprintf(String, sizeof(String), "DST setting: Lebanon");
                   break;
 
                   case (DST_MOLDOVA):
-                    sprintf(String, "DST setting: Moldova");
+                    snprintf(String, sizeof(String), "DST setting: Moldova");
                   break;
 
                   case (DST_NEW_ZEALAND):
-                    sprintf(String, "DST setting: New Zealand");
+                    snprintf(String, sizeof(String), "DST setting: New Zealand");
                   break;
 
                   case (DST_NORTH_AMERICA):
-                    sprintf(String, "DST setting: North America");
+                    snprintf(String, sizeof(String), "DST setting: North America");
                   break;
 
                   case (DST_PALESTINE):
-                    sprintf(String, "DST setting: Palestine");
+                    snprintf(String, sizeof(String), "DST setting: Palestine");
                   break;
 
                   case (DST_PARAGUAY):
-                    sprintf(String, "DST setting: Paraguay");
+                    snprintf(String, sizeof(String), "DST setting: Paraguay");
                   break;
                 }
 
@@ -10047,21 +10047,21 @@ void process_scroll_queue(void)
           switch (FlashConfig.Language)
           {
             case (CZECH):
-              sprintf(String, "UPico Green Clock - verze firmwaru %s    ", FIRMWARE_VERSION);
+              snprintf(String, sizeof(String), "UPico Green Clock - verze firmwaru %s    ", FIRMWARE_VERSION);
             break;
 
             case (ENGLISH):
             case (GERMAN):
             default:
-              sprintf(String, "Pico Green Clock - Firmware Version %s    ", FIRMWARE_VERSION);
+              snprintf(String, sizeof(String), "Pico Green Clock - Firmware Version %s    ", FIRMWARE_VERSION);
             break;
 
             case (FRENCH):
-              sprintf(String, "Pico Green Clock - Microcode Version %s    ", FIRMWARE_VERSION);
+              snprintf(String, sizeof(String), "Pico Green Clock - Microcode Version %s    ", FIRMWARE_VERSION);
             break;
 
             case (SPANISH):
-              sprintf(String, "Pico Green Clock - Version del firmware %s    ", FIRMWARE_VERSION);
+              snprintf(String, sizeof(String), "Pico Green Clock - Version del firmware %s    ", FIRMWARE_VERSION);
               String[24] = (UINT8)139; // o-acute
             break;
           }
@@ -10074,19 +10074,19 @@ void process_scroll_queue(void)
           switch (FlashConfig.Language)
           {
             case (CZECH):
-              sprintf(String, "Vytizeni: %llu    ", IdleMonitor[13]);
+              snprintf(String, sizeof(String), "Vytizeni: %llu    ", IdleMonitor[13]);
               String[3] = (UINT8)131; // i-acute
               String[4] = (UINT8)137; // z-caron
               String[8] = (UINT8)131; // i-acute
             break;
             case (SPANISH):
-              sprintf(String, "Monitor del tiempo de inactividad del sistema: %llu    ", IdleMonitor[13]);
+              snprintf(String, sizeof(String), "Monitor del tiempo de inactividad del sistema: %llu    ", IdleMonitor[13]);
             break;
             case (ENGLISH):
             case (FRENCH):
             case (GERMAN):
             default:
-              sprintf(String, "System idle monitor: %llu    ", IdleMonitor[13]);
+              snprintf(String, sizeof(String), "System idle monitor: %llu    ", IdleMonitor[13]);
             break;
           }
           scroll_string(24, String);
@@ -10102,7 +10102,7 @@ void process_scroll_queue(void)
             /* Display all 7 day-of-week. */
             for (Loop1UInt8 = 1; Loop1UInt8 < 8; ++Loop1UInt8)
             {
-              sprintf(String, "                                  ");
+              snprintf(String, sizeof(String), "                                  ");
               /* Display binary bitmap. */
               for (Loop2UInt8 = 7; Loop2UInt8 > 0; --Loop2UInt8)
               {
@@ -10111,7 +10111,7 @@ void process_scroll_queue(void)
                 else
                   strcat(String, "0");
               }
-              sprintf(&String[strlen(String)], "   %s\r", DayName[FlashConfig.Language][Loop1UInt8]);
+              snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "   %s\r", DayName[FlashConfig.Language][Loop1UInt8]);
               uart_send(__LINE__, String);
             }
 
@@ -10134,7 +10134,7 @@ void process_scroll_queue(void)
                   strcat(DayMask, "0");
               }
               strcat(DayMask, "0");  // add bit 0 since days-of-week go from 1 to 7 (1 being SUN and 7 being SAT)
-              sprintf(String, "[%X] Alarm[%2.2u].DayMask:     %s     (%X) ", &FlashConfig.Alarm[Loop1UInt8].Day, Loop1UInt8, DayMask, FlashConfig.Alarm[Loop1UInt8].Day);
+              snprintf(String, sizeof(String), "[%X] Alarm[%2.2u].DayMask:     %s     (%X) ", &FlashConfig.Alarm[Loop1UInt8].Day, Loop1UInt8, DayMask, FlashConfig.Alarm[Loop1UInt8].Day);
 
               
               for (Loop2UInt8 = 1; Loop2UInt8 < 8; ++Loop2UInt8)
@@ -10142,7 +10142,7 @@ void process_scroll_queue(void)
                 if (FlashConfig.Alarm[Loop1UInt8].Day & (1 << Loop2UInt8))
                 {
                   Dum1UInt8 = strlen(String);
-                  sprintf(&String[strlen(String)], "%s", DayName[FlashConfig.Language][Loop2UInt8]);
+                  snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%s", DayName[FlashConfig.Language][Loop2UInt8]);
                   String[Dum1UInt8 + 3] = 0x20;  // space separator.
                   String[Dum1UInt8 + 4] = 0x00;  // keep first 3 characters of day name.
                 }
@@ -10164,20 +10164,20 @@ void process_scroll_queue(void)
             switch (FlashConfig.Language)
             {
               case (CZECH):
-                sprintf(String, "Chyba NTP: %lu/%lu.   ", NTPData.NTPErrors);
+                snprintf(String, sizeof(String), "Chyba NTP: %lu/%lu.   ", NTPData.NTPErrors);
               break;
 
               case (FRENCH):
-                sprintf(String, "Erreurs NTP: %lu/%lu   ", NTPData.NTPErrors);
+                snprintf(String, sizeof(String), "Erreurs NTP: %lu/%lu   ", NTPData.NTPErrors);
               break;
 
               case (SPANISH):
-                sprintf(String, "Errores NTP: %lu/%lu   ", NTPData.NTPErrors);
+                snprintf(String, sizeof(String), "Errores NTP: %lu/%lu   ", NTPData.NTPErrors);
               break;
 
               case (ENGLISH):
               default:
-                sprintf(String, "NTP errors: %lu   ", NTPData.NTPErrors);
+                snprintf(String, sizeof(String), "NTP errors: %lu   ", NTPData.NTPErrors);
               break;
             }
             scroll_string(24, String);
@@ -10194,20 +10194,20 @@ void process_scroll_queue(void)
           switch (FlashConfig.Language)
           {
             case (CZECH):
-              sprintf(String, "Stav NTP: %lu/%lu.   ", NTPData.NTPErrors, NTPData.NTPReadCycles);
+              snprintf(String, sizeof(String), "Stav NTP: %lu/%lu.   ", NTPData.NTPErrors, NTPData.NTPReadCycles);
             break;
 
             case (FRENCH):
-              sprintf(String, "Statut NTP: %lu/%lu   ", NTPData.NTPErrors, NTPData.NTPReadCycles);
+              snprintf(String, sizeof(String), "Statut NTP: %lu/%lu   ", NTPData.NTPErrors, NTPData.NTPReadCycles);
             break;
 
             case (SPANISH):
-              sprintf(String, "Status NTP: %lu/%lu   ", NTPData.NTPErrors, NTPData.NTPReadCycles);
+              snprintf(String, sizeof(String), "Status NTP: %lu/%lu   ", NTPData.NTPErrors, NTPData.NTPReadCycles);
             break;
 
             case (ENGLISH):
             default:
-              sprintf(String, "NTP status: %lu/%lu   ", NTPData.NTPErrors, NTPData.NTPReadCycles);
+              snprintf(String, sizeof(String), "NTP status: %lu/%lu   ", NTPData.NTPErrors, NTPData.NTPReadCycles);
             break;
           }
           scroll_string(24, String);
@@ -10225,12 +10225,12 @@ void process_scroll_queue(void)
               if (FlashConfig.TemperatureUnit == CELSIUS)
               {
                 /* ...in Celsius. */
-                sprintf(String, "Pico tep.: %2.2f %cC    ", DegreeC, 0x80);
+                snprintf(String, sizeof(String), "Pico tep.: %2.2f %cC    ", DegreeC, 0x80);
               }    
               else
               {
                 /* ...or in Fahrenheit. */
-                sprintf(String, "Pico tep: %2.2f%cF    ", DegreeF, 0x80);
+                snprintf(String, sizeof(String), "Pico tep: %2.2f%cF    ", DegreeF, 0x80);
               }
             break;
 
@@ -10238,12 +10238,12 @@ void process_scroll_queue(void)
               if (FlashConfig.TemperatureUnit == CELSIUS)
               {
                 /* ...in Celsius. */
-                sprintf(String, "Temp. de la Pico: %2.2f%cC    ", DegreeC, 0x80);
+                snprintf(String, sizeof(String), "Temp. de la Pico: %2.2f%cC    ", DegreeC, 0x80);
               }    
               else
               {
                 /* ...or in Fahrenheit. */
-                sprintf(String, "Temp de la Pico: %2.2f%cF    ", DegreeF, 0x80);
+                snprintf(String, sizeof(String), "Temp de la Pico: %2.2f%cF    ", DegreeF, 0x80);
               }
             break;
 
@@ -10254,12 +10254,12 @@ void process_scroll_queue(void)
               if (FlashConfig.TemperatureUnit == CELSIUS)
               {
                 /* ...in Celsius. */
-                sprintf(String, "Pico temp: %2.2f%cC    ", DegreeC, 0x80);
+                snprintf(String, sizeof(String), "Pico temp: %2.2f%cC    ", DegreeC, 0x80);
               }    
               else
               {
                 /* ...or in Fahrenheit. */
-                sprintf(String, "Pico temp: %2.2f%cF    ", DegreeF, 0x80);
+                snprintf(String, sizeof(String), "Pico temp: %2.2f%cF    ", DegreeF, 0x80);
               }
             break;
           }
@@ -10274,21 +10274,21 @@ void process_scroll_queue(void)
             switch (FlashConfig.Language)
             {
               case (CZECH):
-                sprintf(String, "mikrokontroler: Pico.    ");
+                snprintf(String, sizeof(String), "mikrokontroler: Pico.    ");
                 String[12] = (UINT8)138; // e-acute
               break;
  
               case (FRENCH):
-                sprintf(String, "Microcontroleur: Pico    ");
+                snprintf(String, sizeof(String), "Microcontroleur: Pico    ");
               break;
  
               case (SPANISH):
-                sprintf(String, "Microcontrolador: Pico    ");
+                snprintf(String, sizeof(String), "Microcontrolador: Pico    ");
               break;
  
               case (ENGLISH):
               default:
-                sprintf(String, "Microcontroller: Pico    ");
+                snprintf(String, sizeof(String), "Microcontroller: Pico    ");
               break;
             }
           }
@@ -10297,21 +10297,21 @@ void process_scroll_queue(void)
             switch (FlashConfig.Language)
             {
               case (CZECH):
-                sprintf(String, "mikrokontroler: Pico W    ");
+                snprintf(String, sizeof(String), "mikrokontroler: Pico W    ");
                 String[12] = (UINT8)138; // e-acute
               break;
 
               case (FRENCH):
-                sprintf(String, "Microcontroleur: Pico W    ");
+                snprintf(String, sizeof(String), "Microcontroleur: Pico W    ");
               break;
 
               case (SPANISH):
-                sprintf(String, "Microcontrolador: Pico W   ");
+                snprintf(String, sizeof(String), "Microcontrolador: Pico W   ");
               break;
  
               case (ENGLISH):
               default:
-                sprintf(String, "Microcontroller: Pico W    ");
+                snprintf(String, sizeof(String), "Microcontroller: Pico W    ");
               break;
             }
           }
@@ -10321,7 +10321,7 @@ void process_scroll_queue(void)
 
 
         case (TAG_PICO_UNIQUE_ID):
-          sprintf(String, "Pico ID: %s   ", PicoUniqueId);
+          snprintf(String, sizeof(String), "Pico ID: %s   ", PicoUniqueId);
           scroll_string(24, String);
         break;
 
@@ -10331,7 +10331,7 @@ void process_scroll_queue(void)
           /* For debug purposes. Display all allocated scroll queue slots. */
           if (ScrollQueueHead == ScrollQueueTail)
           {
-            sprintf(String, "H%2.2u = T%2.2u - No element allocated    ", ScrollQueueHead, ScrollQueueTail);
+            snprintf(String, sizeof(String), "H%2.2u = T%2.2u - No element allocated    ", ScrollQueueHead, ScrollQueueTail);
             scroll_string(24, String);
           }
           else
@@ -10339,7 +10339,7 @@ void process_scroll_queue(void)
             Dum1UInt8 = ScrollQueueTail;
             while (TRUE)
             {
-              sprintf(String, "(H%2.2u) T%2.2u E%2.2u    ", ScrollQueueHead, Dum1UInt8, ScrollQueue[Dum1UInt8]);
+              snprintf(String, sizeof(String), "(H%2.2u) T%2.2u E%2.2u    ", ScrollQueueHead, Dum1UInt8, ScrollQueue[Dum1UInt8]);
               scroll_string(24, String);
               ++Dum1UInt8;
 
@@ -10360,20 +10360,20 @@ void process_scroll_queue(void)
           switch (FlashConfig.Language)
           {
             case (CZECH):
-              sprintf(String, "casova zona: %d    ", FlashConfig.Timezone);
+              snprintf(String, sizeof(String), "casova zona: %d    ", FlashConfig.Timezone);
               String[0] = (UINT8)136; // c-caron
               String[5] = (UINT8)129; // a-acute
               String[8] = (UINT8)139; // o-acute
             break;
 
             case (SPANISH):
-              sprintf(String, "Zona horaria: %d    ", FlashConfig.Timezone);
+              snprintf(String, sizeof(String), "Zona horaria: %d    ", FlashConfig.Timezone);
             break;
 
             case (ENGLISH):
             case (FRENCH):
             default:
-              sprintf(String, "Timezone: %d    ", FlashConfig.Timezone);
+              snprintf(String, sizeof(String), "Timezone: %d    ", FlashConfig.Timezone);
             break;
           }
           scroll_string(24, String);
@@ -10387,17 +10387,17 @@ void process_scroll_queue(void)
           switch (FlashConfig.Language)
           {
             case (CZECH):
-              sprintf(String, "%2.2f V    ", Volts);
+              snprintf(String, sizeof(String), "%2.2f V    ", Volts);
             break;
 
             case (SPANISH):
-              sprintf(String, "%2.2f voltios  ", Volts);
+              snprintf(String, sizeof(String), "%2.2f voltios  ", Volts);
             break;
 
             case (ENGLISH):
             case (FRENCH):
             default:
-             sprintf(String, "%2.2f Volts    ", Volts);
+             snprintf(String, sizeof(String), "%2.2f Volts    ", Volts);
             break;
           }
           scroll_string(24, String);
@@ -10837,8 +10837,8 @@ UINT8 read_dht(float *Temperature, float *Humidity)
     Checksum   = 0;
     CurrentBit = 0;
     DataBuffer = 0;
-    sprintf(Dum2UChar, "00000000");                          // Checksum in binary (8 bits).
-    sprintf(Dum1UChar, "00000000000000000000000000000000");  // DataBuffer (result) in binary (32 bits);
+    snprintf(Dum2UChar, sizeof(Dum2UChar), "00000000");                          // Checksum in binary (8 bits).
+    snprintf(Dum1UChar, sizeof(Dum1UChar), "00000000000000000000000000000000");  // DataBuffer (result) in binary (32 bits);
 
 
     if (DebugBitMask & DEBUG_DHT)
@@ -10974,7 +10974,7 @@ UINT8 read_dht(float *Temperature, float *Humidity)
       if (DebugBitMask & DEBUG_DHT)
       {
         /* Generate each part of the checksum in binary. */
-        sprintf(Dum2UChar, "  0  0  0  0  0  0  0  0");
+        snprintf(Dum2UChar, sizeof(Dum2UChar), "  0  0  0  0  0  0  0  0");
         for (Loop2UInt16 = 0; Loop2UInt16 < 8; ++Loop2UInt16)
         {
           if ((Value & (1 << Loop2UInt16)))
@@ -11009,7 +11009,7 @@ UINT8 read_dht(float *Temperature, float *Humidity)
 
 
       /* Display received checksum in binary. */
-      sprintf(Dum2UChar, "  0  0  0  0  0  0  0  0");
+      snprintf(Dum2UChar, sizeof(Dum2UChar), "  0  0  0  0  0  0  0  0");
       for (Loop1UInt16 = 0; Loop1UInt16 < 8; ++Loop1UInt16)
       {
         if (Checksum & (1 << Loop1UInt16))
@@ -11228,7 +11228,7 @@ UINT8 scroll_queue_value(UINT8 Tag, UCHAR *String)
            returns the next event number in case we have more data to be
            displayed). */
 
-  sprintf(CalendarEvent[EventNumber].Description, "%s", String);
+  snprintf(CalendarEvent[EventNumber].Description, sizeof(CalendarEvent[EventNumber].Description), "%s", String);
   scroll_queue(EventNumber);
   ++EventNumber;
   if (EventNumber >= MAX_EVENTS)
@@ -11424,7 +11424,7 @@ void set_and_save_credentials(void)
 
   
   /* Scroll current credentials on entry. */
-  sprintf(String, "SSID: [%s]   Pwd: [%s]", FlashConfig.SSID, FlashConfig.Password);
+  snprintf(String, sizeof(String), "SSID: [%s]   Pwd: [%s]", FlashConfig.SSID, FlashConfig.Password);
   scroll_string(24, String);
 
   /* Wait until scrolling is done. */
@@ -11534,9 +11534,9 @@ void set_and_save_credentials(void)
             /* Assign SSID only if it is a non-null string. */
             if (NewSsid[0] != 0)
             {
-              sprintf(&FlashConfig.SSID[4], NewSsid);
+              snprintf(&FlashConfig.SSID[4], sizeof(FlashConfig.SSID) - (4), NewSsid);
               clear_framebuffer(0);
-              sprintf(String, "SSID saved: %s      ", NewSsid);
+              snprintf(String, sizeof(String), "SSID saved: %s      ", NewSsid);
               scroll_string(24, String);
             }
           }
@@ -11548,9 +11548,9 @@ void set_and_save_credentials(void)
             /* Assign password only if it is a non-null string. */
             if (NewPassword[0] != 0)
             {
-              sprintf(&FlashConfig.Password[4], NewPassword);
+              snprintf(&FlashConfig.Password[4], sizeof(FlashConfig.Password) - (4), NewPassword);
               clear_framebuffer(0);
-              sprintf(String, "Password saved: %s   ", NewPassword);
+              snprintf(String, sizeof(String), "Password saved: %s   ", NewPassword);
               scroll_string(24, String);
             }
 
@@ -12099,14 +12099,14 @@ void setup_alarm_variables(UINT8 FlagButtonSelect)
         strcat(DayMask, "0");
     }
     strcat(DayMask, "0");  // add bit 0 since days-of-week go from 1 to 7 (1 being SUN and 7 being SAT)
-    sprintf(String, "[%X] Alarm[%2.2u].DayMask:     %s     (%X) ", &FlashConfig.Alarm[AlarmNumber].Day, AlarmNumber, DayMask, FlashConfig.Alarm[AlarmNumber].Day);
+    snprintf(String, sizeof(String), "[%X] Alarm[%2.2u].DayMask:     %s     (%X) ", &FlashConfig.Alarm[AlarmNumber].Day, AlarmNumber, DayMask, FlashConfig.Alarm[AlarmNumber].Day);
 
     for (Loop1UInt8 = 1; Loop1UInt8 < 8; ++Loop1UInt8)
     {
       if (FlashConfig.Alarm[AlarmNumber].Day & (1 << Loop1UInt8))
       {
         Dum1UInt8 = strlen(String);
-        sprintf(&String[strlen(String)], "%s", DayName[FlashConfig.Language][Loop1UInt8]);
+        snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%s", DayName[FlashConfig.Language][Loop1UInt8]);
         String[Dum1UInt8 + 3] = 0x20;  // space separator.
         String[Dum1UInt8 + 4] = 0x00;  // keep first 3 characters of day name.
       }
@@ -13698,9 +13698,9 @@ bool sound_callback_ms(struct repeating_timer *Timer50MSec)
     if (DebugBitMask & DEBUG_SOUND_QUEUE)
     {
       if (ActiveRepeatCount == SILENT)
-        sprintf(String, "- A-Silence     (%4u)\r", ActiveMSecCounter + 50);
+        snprintf(String, sizeof(String), "- A-Silence     (%4u)\r", ActiveMSecCounter + 50);
       else
-        sprintf(String, "- A-Sounding    (%4u)\r", ActiveMSecCounter + 50);
+        snprintf(String, sizeof(String), "- A-Sounding    (%4u)\r", ActiveMSecCounter + 50);
       
       uart_send(__LINE__, String);
     }
@@ -13774,9 +13774,9 @@ bool sound_callback_ms(struct repeating_timer *Timer50MSec)
     if (DebugBitMask & DEBUG_SOUND_QUEUE)
     {
       if (Frequency == SILENT)
-        sprintf(String, "- P-Silence     (%4u)\r", PassiveMSecCounter + 50);
+        snprintf(String, sizeof(String), "- P-Silence     (%4u)\r", PassiveMSecCounter + 50);
       else
-        sprintf(String, "- P-Sounding    (%4u)\r", PassiveMSecCounter + 50);
+        snprintf(String, sizeof(String), "- P-Sounding    (%4u)\r", PassiveMSecCounter + 50);
 
       uart_send(__LINE__, String);
     }
@@ -14475,13 +14475,13 @@ Test1:
   ds3231_register_read();
 
   /* Display RTC registers. */
-  sprintf(String, "1: %2.2X   2: %2.2X   3: %2.2X   4: %2.2X   5: %2.2X   6: %2.2X   7: %2.2X",
+  snprintf(String, sizeof(String), "1: %2.2X   2: %2.2X   3: %2.2X   4: %2.2X   5: %2.2X   6: %2.2X   7: %2.2X",
           Ds3231ReadRegister[0], Ds3231ReadRegister[1], Ds3231ReadRegister[2], Ds3231ReadRegister[3], Ds3231ReadRegister[4], Ds3231ReadRegister[5], Ds3231ReadRegister[6]);
   scroll_string(24, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "8: %2.2X   9: %2.2X   10: %2.2X   11: %2.2X   12: %2.2X   13: %2.2X   14: %2.2X",
+  snprintf(String, sizeof(String), "8: %2.2X   9: %2.2X   10: %2.2X   11: %2.2X   12: %2.2X   13: %2.2X   14: %2.2X",
           Ds3231ReadRegister[7], Ds3231ReadRegister[8], Ds3231ReadRegister[9], Ds3231ReadRegister[10], Ds3231ReadRegister[11], Ds3231ReadRegister[12], Ds3231ReadRegister[13]);
   scroll_string(24, String);
   while (ScrollDotCount)
@@ -14816,7 +14816,7 @@ Test2:
 
   /* If CRC16 computed from retrieved data is different from CRC16 read from flash...
      Assign default values and save a new configuration to flash. */
-  sprintf(FlashConfig.Version, FIRMWARE_VERSION);         // firmware version number.
+  snprintf(FlashConfig.Version, sizeof(FlashConfig.Version), FIRMWARE_VERSION);         // firmware version number.
   FlashConfig.CurrentYearCentile = 20;                    // assume we are in years 20xx (could be changed in clock setup, but will revert to 20 at each power-up).
   FlashConfig.ChimeTimeOff       = CHIME_TIME_OFF;        // hourly chime will begin at this hour.
   FlashConfig.ChimeTimeOn        = CHIME_TIME_ON;         // hourly chime will begin at this hour.
@@ -14888,35 +14888,35 @@ Test3:
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(CrcString, "FF101A0B");
+  snprintf(CrcString, sizeof(CrcString), "FF101A0B");
   Dum1UInt16 = crc16(CrcString, 8);
   uart_send(__LINE__, "String: %s   CRC16: %X (%u)\r", CrcString, Dum1UInt16, Dum1UInt16);
 
-  sprintf(CrcString, "FF101A8B");
+  snprintf(CrcString, sizeof(CrcString), "FF101A8B");
   Dum1UInt16 = crc16(CrcString, 8);
   uart_send(__LINE__, "String: %s   CRC16: %X (%u)\r", CrcString, Dum1UInt16, Dum1UInt16);
 
-  sprintf(CrcString, "FF101B0B");
+  snprintf(CrcString, sizeof(CrcString), "FF101B0B");
   Dum1UInt16 = crc16(CrcString, 8);
   uart_send(__LINE__, "String: %s   CRC16: %X (%u)\r", CrcString, Dum1UInt16, Dum1UInt16);
 
-  sprintf(CrcString, "FF101B8B");
+  snprintf(CrcString, sizeof(CrcString), "FF101B8B");
   Dum1UInt16 = crc16(CrcString, 8);
   uart_send(__LINE__, "String: %s   CRC16: %X (%u)\r", CrcString, Dum1UInt16, Dum1UInt16);
 
-  sprintf(CrcString, "FF101C0B");
+  snprintf(CrcString, sizeof(CrcString), "FF101C0B");
   Dum1UInt16 = crc16(CrcString, 8);
   uart_send(__LINE__, "String: %s   CRC16: %X (%u)\r", CrcString, Dum1UInt16, Dum1UInt16);
 
-  sprintf(CrcString, "FF101C8B");
+  snprintf(CrcString, sizeof(CrcString), "FF101C8B");
   Dum1UInt16 = crc16(CrcString, 8);
   uart_send(__LINE__, "String: %s   CRC16: %X (%u)\r", CrcString, Dum1UInt16, Dum1UInt16);
 
-  sprintf(CrcString, "FF101D0B");
+  snprintf(CrcString, sizeof(CrcString), "FF101D0B");
   Dum1UInt16 = crc16(CrcString, 8);
   uart_send(__LINE__, "String: %s   CRC16: %X (%u)\r", CrcString, Dum1UInt16, Dum1UInt16);
 
-  sprintf(CrcString, "FF101D8B");
+  snprintf(CrcString, sizeof(CrcString), "FF101D8B");
   Dum1UInt16 = crc16(CrcString, 8);
   uart_send(__LINE__, "String: %s   CRC16: %X (%u)\r", CrcString, Dum1UInt16, Dum1UInt16);
 
@@ -14946,7 +14946,7 @@ Test4:
 
   while (1)
   {
-    sprintf(String, "%4.4u", AverageLightLevel);
+    snprintf(String, sizeof(String), "%4.4u", AverageLightLevel);
 
     fill_display_buffer_4X7(1,  String[0]);
     fill_display_buffer_4X7(6,  String[1]);
@@ -14982,7 +14982,7 @@ Test5:
     sleep_ms(100); // let the time to complete scrolling.
 
   /* Fill DisplayBuffer[] with bitmap corresponding to the ASCII string. */
-  sprintf(String, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+  snprintf(String, sizeof(String), "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
   ColumnPosition = 24; // put the bitmap beginning at position 22 + 2, just beyond the visible clock.
 
   /* Transfer the bitmap of each ASCII character to the display buffer. */
@@ -15062,7 +15062,7 @@ Test6:
   for (Loop1UInt8 = 0x80; Loop1UInt8 <= 0x91; ++Loop1UInt8)  /// 0x1E = start character
   {
     /* Indicate which ASCII character we are scrolling. */
-    sprintf(String, "0x%2.2X - ", Loop1UInt8);
+    snprintf(String, sizeof(String), "0x%2.2X - ", Loop1UInt8);
 
     /* Put 10 characters side by side to see character width and spacing. */
     for (Loop2UInt8 = 7; Loop2UInt8 < 17; ++Loop2UInt8)
@@ -15873,32 +15873,32 @@ Test13:
   for (Loop1UInt8 = 0; Loop1UInt8 < DISPLAY_BUFFER_SIZE; ++Loop1UInt8)
     String[Loop1UInt8] = 0x00;
 
-  sprintf(String, "A");
+  snprintf(String, sizeof(String), "A");
   scroll_string(22, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "B");
+  snprintf(String, sizeof(String), "B");
   scroll_string(22, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "AA");
+  snprintf(String, sizeof(String), "AA");
   scroll_string(22, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "BB");
+  snprintf(String, sizeof(String), "BB");
   scroll_string(22, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "AB");
+  snprintf(String, sizeof(String), "AB");
   scroll_string(22, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "ABAB");
+  snprintf(String, sizeof(String), "ABAB");
   scroll_string(22, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
@@ -16136,22 +16136,22 @@ Test15:
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "strlen(DisplayBuffer) = %u", strlen(DisplayBuffer));
+  snprintf(String, sizeof(String), "strlen(DisplayBuffer) = %u", strlen(DisplayBuffer));
   scroll_string(20, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "sizeof(DisplayBuffer) = %u", sizeof(DisplayBuffer));
+  snprintf(String, sizeof(String), "sizeof(DisplayBuffer) = %u", sizeof(DisplayBuffer));
   scroll_string(20, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "Value of TRUE = %u", TRUE);
+  snprintf(String, sizeof(String), "Value of TRUE = %u", TRUE);
   scroll_string(20, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
 
-  sprintf(String, "Value of FALSE = %u", FALSE);
+  snprintf(String, sizeof(String), "Value of FALSE = %u", FALSE);
   scroll_string(20, String);
   while (ScrollDotCount)
     sleep_ms(100); // let the time to complete scrolling.
@@ -16188,7 +16188,7 @@ Test16:
   for (Loop1UInt8 = 0; Loop1UInt8 < 5; ++Loop1UInt8)
   {
     // First, display which byte of the DisplayBuffer[] we are testing.
-    sprintf(String, "[%u]", Loop1UInt8);
+    snprintf(String, sizeof(String), "[%u]", Loop1UInt8);
 
     /* Wait for "Set" button to be pressed... */
     /* Blink the two white LEDs near the buttons to show that we are waiting
@@ -16767,7 +16767,7 @@ Test18:
   {
     pwm_set_duty_cycle(Loop1UInt16);
 
-    sprintf(String, "%4.4u", Loop1UInt16);
+    snprintf(String, sizeof(String), "%4.4u", Loop1UInt16);
     fill_display_buffer_4X7(3,  String[0]);
     fill_display_buffer_4X7(8,  String[1]);
     fill_display_buffer_4X7(13, String[2]);
@@ -18012,9 +18012,9 @@ bool timer_callback_s(struct repeating_timer *TimerSec)
     Timer2 = time_us_64();
   
     if (FlashConfig.FlagSummerTime == FLAG_ON)
-      sprintf(String1, "Summer Time");
+      snprintf(String1, sizeof(String1), "Summer Time");
     else
-      sprintf(String1, "Winter Time");
+      snprintf(String1, sizeof(String1), "Winter Time");
 
     CurrentDutyCycle = Pwm[PWM_BRIGHTNESS].DutyCycle;
     pwm_set_duty_cycle(0);  // blank display so that we don't see frozen display while LED scanning is delayed by UART.
