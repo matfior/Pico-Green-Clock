@@ -518,7 +518,7 @@
 #define FLAG_ON                   0x01      // flag is ON.
 #define FLAG_POLL                 0x02
 #define FLAG_WAIT                 0x03      // special flag asking passive sound queue to wait for active sound queue to complete.
-#define FLASH_CONFIG_OFFSET       0x1FF000  // offset in the Pico's 2 MB where to save data. Starting at 2.00MB - 4096 bytes (very end of flash).
+#define FLASH_CONFIG_OFFSET       (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)  // last flash sector, derived from board flash size (4096 bytes at the very end of flash).
 #define H12                       FLAG_OFF  // 12-hours time format.
 #define H24                       FLAG_ON   // 24-hours time format.
 #define MAX_ACTIVE_SOUND_QUEUE    100       // maximum number of "sounds" in the active buzzer sound queue.
@@ -2131,7 +2131,7 @@ int main(void)
 
           default:
             snprintf(String, sizeof(String), "-> Section #%u\r", Loop1UInt8);
-            uart_send(__LINE__, String);
+            uart_send(__LINE__, "%s", String);
           break;
         }
       }
@@ -2198,7 +2198,7 @@ int main(void)
   /*
   if (DebugBitMask & DEBUG_FLASH)
     uart_send(__LINE__, "Erasing configuration section of Pico's flash memory to force generating a new configuration.\r");
-  flash_erase(0x1FF000);
+  flash_erase(FLASH_CONFIG_OFFSET);
   */
 
   flash_read_config();
@@ -3191,7 +3191,7 @@ int main(void)
 
     sleep_ms(10000);  // force watchdog trigger.
     if (DebugBitMask & DEBUG_WATCHDOG)
-      uart_send(__LINE__, String);
+      uart_send(__LINE__, "%s", String);
     ***/
 
 
@@ -3334,9 +3334,6 @@ int main(void)
       show_time();
       FlagUpdateTime = FLAG_OFF;
     }
-
-
-    if (CurrentClockMode == MODE_SHOW_TIME) show_time;
 
 
     /* If a command has been inserted in the command queue, process it. */
@@ -4858,6 +4855,9 @@ UINT8 core_queue(UINT8 CoreNumber, UINT8 Command)
         uart_send(__LINE__, "Wrong core specified for core_queue() function [%u]\r", CoreNumber);
     break;
   }
+
+  /* Invalid core number: return error code. */
+  return MAX_CORE_QUEUE;
 }
 
 
@@ -4908,6 +4908,9 @@ UINT8 core_unqueue(UINT8 CoreNumber)
       return Command;
     break;
   }
+
+  /* Invalid core number: return error code (same as "queue empty"). */
+  return MAX_CORE_QUEUE;
 }
 #endif  // DHT_SUPPORT
 
@@ -5041,7 +5044,7 @@ void display_data(UCHAR *Data, UINT32 Size)
     }
     
   
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
 
   
     /* Add separator. */
@@ -5061,7 +5064,7 @@ void display_data(UCHAR *Data, UINT32 Size)
       }
     }
     strcat(String, "\r");
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
 
     // sleep_ms(50);  // let some time to flush UART buffer.
   }
@@ -5092,7 +5095,7 @@ void display_pwm(struct pwm *Pwm, UCHAR *TitleString)
   /* Retrieve system clock (Pico is 125 MHz)... */
   SystemClock = clock_get_hz(clk_sys);
 
-  uart_send(__LINE__, TitleString);
+  uart_send(__LINE__, "%s", TitleString);
 
   uart_send(__LINE__, "Pwm->Gpio:         %u    (13 = Brightness   19 = Sound)\r", Pwm->Gpio);
 
@@ -5567,7 +5570,7 @@ void flash_display(UINT32 Offset, UINT32 Length)
     {
       snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%2.2X ", FlashBaseAddress[Loop1UInt32 + Loop2UInt32]);
     }
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
 
 
     /* Add separator. */
@@ -5585,7 +5588,7 @@ void flash_display(UINT32 Offset, UINT32 Length)
         snprintf(&String[Loop2UInt32 + 2], sizeof(String) - (Loop2UInt32 + 2), ".");
       }
     }
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
     uart_send(__LINE__, "\r");
   }
 
@@ -5668,7 +5671,7 @@ UINT8 flash_display_config(void)
       snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "   %s\r", DayName[FlashConfig.Language][Loop1UInt16]);
     else
       snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "   %s\r", DayName[ENGLISH][Loop1UInt16]);
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
   }
   uart_send(__LINE__, "\r");
 
@@ -5695,7 +5698,7 @@ UINT8 flash_display_config(void)
       }
     }
     strcat(String, "\r\r");
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
   }
 
   
@@ -5706,7 +5709,7 @@ UINT8 flash_display_config(void)
   for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(FlashConfig.SSID); ++Loop1UInt16)
     snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%c", FlashConfig.SSID[Loop1UInt16]);
   strcat(String, "]\r");
-  uart_send(__LINE__, String);
+  uart_send(__LINE__, "%s", String);
 
 
   /* In case password is not initialized, display it character by character. */
@@ -5714,7 +5717,7 @@ UINT8 flash_display_config(void)
   for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(FlashConfig.Password); ++Loop1UInt16)
     snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%c", FlashConfig.Password[Loop1UInt16]);
   strcat(String, "]\r\r");
-  uart_send(__LINE__, String);
+  uart_send(__LINE__, "%s", String);
 
 
   /* Display Reserved2 data. */
@@ -5722,7 +5725,7 @@ UINT8 flash_display_config(void)
   for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(FlashConfig.Reserved2); ++Loop1UInt16)
   {
     snprintf(String, sizeof(String), "- 0x%2.2X ", FlashConfig.Reserved2[Loop1UInt16]);
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
 
     if (((Loop1UInt16 + 1) % 10) == 0)
       uart_send(__LINE__, "\r  ");
@@ -6570,7 +6573,7 @@ void get_dst_days(void)
       snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%u + ", get_month_days(CurrentYear, Loop2UInt8));
     }
     snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%u\r", Loop1UInt8);
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
 
     uart_send(__LINE__, " ----------> StartDayOfYear for DST: %u   %s %2u-%s-%4.4u\r\r\r", DstParameters[FlashConfig.DSTCountry].StartDayOfYear, ShortDay[FlashConfig.Language][DstParameters[FlashConfig.DSTCountry].StartDayOfWeek], Loop1UInt8, ShortMonth[ENGLISH][DstParameters[FlashConfig.DSTCountry].StartMonth], CurrentYear);
   }
@@ -6627,7 +6630,7 @@ void get_dst_days(void)
       snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%u + ", get_month_days(CurrentYear, Loop2UInt8));
     }
     snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "%u\r", Loop1UInt8);
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
 
     uart_send(__LINE__, " ----------> EndDayOfYear for DST: %u   %s %2u-%s-%4.4u\r", DstParameters[FlashConfig.DSTCountry].EndDayOfYear, ShortDay[FlashConfig.Language][DstParameters[FlashConfig.DSTCountry].EndDayOfWeek], Loop1UInt8, ShortMonth[ENGLISH][DstParameters[FlashConfig.DSTCountry].EndMonth], CurrentYear);
     uart_send(__LINE__, "=========================================================================================================\r\r\r");
@@ -9548,7 +9551,7 @@ void process_scroll_queue(void)
 
             if (DebugBitMask & DEBUG_BME280)
             {
-              uart_send(__LINE__, String);
+              uart_send(__LINE__, "%s", String);
               uart_send(__LINE__, "\r");
             }
             scroll_string(24, String);
@@ -9558,7 +9561,7 @@ void process_scroll_queue(void)
           snprintf(String, sizeof(String), " [%lu/%lu]    ", Bme280Data.Bme280Errors, Bme280Data.Bme280ReadCycles);
           if (DebugBitMask & DEBUG_BME280)
           {
-            uart_send(__LINE__, String);
+            uart_send(__LINE__, "%s", String);
             uart_send(__LINE__, "\r\r");
           }
           scroll_string(24, String);
@@ -10113,7 +10116,7 @@ void process_scroll_queue(void)
                   strcat(String, "0");
               }
               snprintf(&String[strlen(String)], sizeof(String) - (strlen(String)), "   %s\r", DayName[FlashConfig.Language][Loop1UInt8]);
-              uart_send(__LINE__, String);
+              uart_send(__LINE__, "%s", String);
             }
 
 
@@ -10150,7 +10153,7 @@ void process_scroll_queue(void)
               }
 
               strcat(String, "\r");
-              uart_send(__LINE__, String);
+              uart_send(__LINE__, "%s", String);
             }
           }
         break;
@@ -12114,7 +12117,7 @@ void setup_alarm_variables(UINT8 FlagButtonSelect)
     }
 
     strcat(String, "\r");
-    uart_send(__LINE__, String);
+    uart_send(__LINE__, "%s", String);
     uart_send(__LINE__, "Exiting setup_alarm_variables\r");
   }
 
@@ -13703,7 +13706,7 @@ bool sound_callback_ms(struct repeating_timer *Timer50MSec)
       else
         snprintf(String, sizeof(String), "- A-Sounding    (%4u)\r", ActiveMSecCounter + 50);
       
-      uart_send(__LINE__, String);
+      uart_send(__LINE__, "%s", String);
     }
 
     ActiveMSecCounter += 50;  // 50 milliseconds more since last callback.
@@ -13779,7 +13782,7 @@ bool sound_callback_ms(struct repeating_timer *Timer50MSec)
       else
         snprintf(String, sizeof(String), "- P-Sounding    (%4u)\r", PassiveMSecCounter + 50);
 
-      uart_send(__LINE__, String);
+      uart_send(__LINE__, "%s", String);
     }
 
     /* There is a sound on-going on the passive buzzer, check if it is completed. */
@@ -14572,17 +14575,17 @@ Test2:
   flash_display(0x7F000, 0x6A);
 
   /* Erase data written to flash from previous tests. */
-  flash_erase(0x1FF000);
+  flash_erase(FLASH_CONFIG_OFFSET);
 
   /* Test flash_write() function. */
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 1 -------------------------\r");
   memset(FlashSector, 0x00, sizeof(FlashSector));
-  flash_write(0x1FF000, FlashSector, 1);
+  flash_write(FLASH_CONFIG_OFFSET, FlashSector, 1);
 
   /* Display flash content after flash_write(). */
-  uart_send(__LINE__, "Display flash content after writing 1 X 0x00 at offset 0x1FF000.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  uart_send(__LINE__, "Display flash content after writing 1 X 0x00 at FLASH_CONFIG_OFFSET.\r");
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 2 -------------------------\r");
@@ -14591,7 +14594,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 1 X 0x01 at offset 0x1F001.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 3 -------------------------\r");
@@ -14600,7 +14603,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 1 X 0x02 at offset 0x1FF002.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 4 -------------------------\r");
@@ -14609,7 +14612,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 1 X 0x03 at offset 0x1FF003.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 5 -------------------------\r");
@@ -14618,7 +14621,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 1 X 0x04 at offset 0x1FF004.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 6 -------------------------\r");
@@ -14627,7 +14630,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 5 X 0x00 at offset 0x1FF005.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 7 -------------------------\r");
@@ -14636,7 +14639,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 25 X 0x11 at offset 0x1FF009.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 8 -------------------------\r");
@@ -14645,7 +14648,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 65 X 0x22 at offset 0x1FF044.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 9 -------------------------\r");
@@ -14654,7 +14657,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 50 X 0x33 at offset 0x1FF0E0.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 10 -------------------------\r");
@@ -14679,7 +14682,7 @@ Test2:
 
   /* Display flash content after flash_write(). */
   uart_send(__LINE__, "Display flash content after writing 16 increment of 50 at offset 0x1FF0F3.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 11 -------------------------\r");
@@ -14690,18 +14693,18 @@ Test2:
 
   /* Display flash content. */
   uart_send(__LINE__, "Display flash content after writing 1024 X 0xAA at offset 0x1FF105.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 12 -------------------------\r");
 
   /* NOTE: Should give an error and write nothing. */
   memset(FlashSector, 0xBB, sizeof(FlashSector));
-  flash_write(0x1FF000, FlashSector, 4097);
+  flash_write(FLASH_CONFIG_OFFSET, FlashSector, 4097);
 
   /* Display flash content. */
   uart_send(__LINE__, "Display flash content after writing 1025 X 0xBB at offset 0x1FF200.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 13 -------------------------\r");
@@ -14710,7 +14713,7 @@ Test2:
 
   /* Display flash content. */
   uart_send(__LINE__, "Display flash content after writing 256 X 0x11 at offset 0x1FF300.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 14 -------------------------\r");
@@ -14719,7 +14722,7 @@ Test2:
 
   /* Display flash content. */
   uart_send(__LINE__, "Display flash content after writing 48 X 0x33 at offset 0x1FF355.\r");
-  flash_display((0x1FF000 - 64), (4096 + 128));
+  flash_display((FLASH_CONFIG_OFFSET - 64), (4096 + 128));
 
   /* Set the data to write to flash. */
   uart_send(__LINE__, "------------------------- BEGINNING OF TEST 15 -------------------------\r");
@@ -16307,290 +16310,6 @@ Test17:
 
 
   return;
-
-
-
-
-  uart_send(__LINE__, "Will stop TimerMSec timer in 5 seconds\r");
-  sleep_ms(5000);
-
-  cancel_repeating_timer(&TimerMSec);
-  sleep_ms(5000);
-
-
-
-
-  uart_send(__LINE__, "Will restart TimerMSec timer in 5 seconds\r");
-  sleep_ms(5000);
-
-  add_repeating_timer_ms(-1, timer_callback_ms, NULL, &TimerMSec);
-  sleep_ms(5000);
-
-
-
-
-  uart_send(__LINE__, "Will restart clock in 5 seconds\r");
-  sleep_ms(5000);
-
-  show_time();
-  sleep_ms(5000);
-
-
-
-  
-  uart_send(__LINE__, "Will stop TimerSec timer in 5 seconds\r");
-  sleep_ms(5000);
-
-  cancel_repeating_timer(&TimerSec);
-  sleep_ms(5000);
-
-
-
-
-  uart_send(__LINE__, "Will restart TimerSec timer in 5 seconds\r");
-  sleep_ms(5000);
-
-  add_repeating_timer_ms(-1000, timer_callback_ms, NULL, &TimerSec);
-  sleep_ms(5000);
-
-
-
-
-  uart_send(__LINE__, "Will restart clock in 5 seconds\r");
-  sleep_ms(5000);
-
-  show_time();
-  sleep_ms(5000);
-
-
-
-
-  /* Tone to announce entering a new test. */
-  tone(10);
-
-  /* Announce test number. */
-  scroll_string(24, "Test #17 - Tests with weekday indicators");
-  while (ScrollDotCount)
-    sleep_ms(100); // let the time to complete scrolling.
-
-  // Turn ON, then OFF, each weekday indicator (2 LEDs per indicator).
-  DisplayBuffer[0] |= (1 << 3) | (1 << 4); // Monday
-  sleep_ms(500);
-  DisplayBuffer[0] &= ~((1 << 3) | (1 << 4));
-  sleep_ms(500);
-
-  DisplayBuffer[0] |= (1 << 6) | (1 << 7); // Tuesday
-  sleep_ms(500);
-  DisplayBuffer[0] &= ~((1 << 6) | (1 << 7));
-  sleep_ms(500);
-
-  DisplayBuffer[8] |= (1 << 1) | (1 << 2); // Wednesday
-  sleep_ms(500);
-  DisplayBuffer[8] &= ~((1 << 1) | (1 << 2));
-  sleep_ms(500);
-
-  DisplayBuffer[8] |= (1 << 4) | (1 << 5); // Thursday
-  sleep_ms(500);
-  DisplayBuffer[8] &= ~((1 << 4) | (1 << 5));
-  sleep_ms(500);
-
-  DisplayBuffer[8]  |= (1 << 7); // Friday
-  DisplayBuffer[16] |= (1 << 0);
-  sleep_ms(500);
-  DisplayBuffer[8]  &= ~(1 << 7);
-  DisplayBuffer[16] &= ~(1 << 0);
-  sleep_ms(500);
-
-  DisplayBuffer[16] |= (1 << 2) | (1 << 3); // Saturday
-  sleep_ms(500);
-  DisplayBuffer[16] &= ~((1 << 2) | (1 << 3));
-  sleep_ms(500);
-
-  DisplayBuffer[16] |= (1 << 5) | (1 << 6); // Sunday
-  sleep_ms(500);
-  DisplayBuffer[16] &= ~((1 << 5) | (1 << 6));
-  sleep_ms(500);
-
-  // Now do the same with all other display indicators.
-  DisplayBuffer[0] |= 0X03; // scroll indicator
-  sleep_ms(500);
-  DisplayBuffer[0] &= ~0X03;
-  sleep_ms(500);
-  DisplayBuffer[1] |= 0X03; // alarm indicator
-  sleep_ms(500);
-  DisplayBuffer[1] &= ~0x03;
-  sleep_ms(500);
-  DisplayBuffer[2] |= 0X03; // count down timer indicator
-  sleep_ms(500);
-  DisplayBuffer[2] &= ~0x03;
-  sleep_ms(500);
-  DisplayBuffer[3] |= (1 << 0); // Farenheit indicator
-  sleep_ms(500);
-  DisplayBuffer[3] &= ~(1 << 0);
-  sleep_ms(500);
-  DisplayBuffer[3] |= (1 << 1); // Celsius indicator
-  sleep_ms(500);
-  DisplayBuffer[3] &= ~(1 << 1);
-  sleep_ms(500);
-  DisplayBuffer[4] |= (1 << 0); // AM indicator
-  sleep_ms(500);
-  DisplayBuffer[4] &= ~(1 << 0);
-  sleep_ms(500);
-  DisplayBuffer[4] |= (1 << 1); // PM indicator
-  sleep_ms(500);
-  DisplayBuffer[4] &= ~(1 << 1);
-  sleep_ms(500);
-  DisplayBuffer[5] |= 0X03; // count up timer indicator
-  sleep_ms(500);
-  DisplayBuffer[5] &= ~0x03;
-  sleep_ms(500);
-  DisplayBuffer[6] |= 0X03; // hourly chime indicator
-  sleep_ms(500);
-  DisplayBuffer[6] &= ~0X03;
-  sleep_ms(500);
-  DisplayBuffer[7] |= 0X03; // auto brightness indicator
-  sleep_ms(500);
-  DisplayBuffer[7] &= ~0X03;
-  sleep_ms(500);
-  DisplayBuffer[0] |= (1 << 2) | (1 << 5); // two white LEDs near the buttons inside the clock
-  sleep_ms(500);
-  DisplayBuffer[0] &= ~((1 << 2) | (1 << 5));
-  sleep_ms(500);
-
-  /* Turn ON all weekday indicators, one after the other. */
-  DisplayBuffer[0] |= (1 << 3) | (1 << 4); // Monday
-  sleep_ms(500);
-  DisplayBuffer[0] |= (1 << 6) | (1 << 7); // Tuesday
-  sleep_ms(500);
-  DisplayBuffer[8] |= (1 << 1) | (1 << 2); // Wednesday
-  sleep_ms(500);
-  DisplayBuffer[8] |= (1 << 4) | (1 << 5); // Thursday
-  sleep_ms(500);
-  DisplayBuffer[8] |= (1 << 7); // Friday
-  DisplayBuffer[16] |= (1 << 0);
-  sleep_ms(500);
-  DisplayBuffer[16] |= (1 << 2) | (1 << 3); // Saturday
-  sleep_ms(500);
-  DisplayBuffer[16] |= (1 << 5) | (1 << 6); // Sunday
-  sleep_ms(500);
-
-  /* Turn ON all left-side indicators, one after the other. */
-  DisplayBuffer[0] |= 0X03; // scroll indicator
-  sleep_ms(500);
-  DisplayBuffer[1] |= 0X03; // alarm indicator
-  sleep_ms(500);
-  DisplayBuffer[2] |= 0X03; // timer indicator
-  sleep_ms(500);
-  DisplayBuffer[3] |= (1 << 0); // Farenheit indicator
-  sleep_ms(500);
-  DisplayBuffer[3] |= (1 << 1); // Celsius indicator
-  sleep_ms(500);
-  DisplayBuffer[4] |= (1 << 0); // AM indicator
-  sleep_ms(500);
-  DisplayBuffer[4] |= (1 << 1); // PM indicator
-  sleep_ms(500);
-  DisplayBuffer[5] |= 0X03; // count up indicator ??
-  sleep_ms(500);
-  DisplayBuffer[6] |= 0X03; // hourly chime indicator
-  sleep_ms(500);
-  DisplayBuffer[7] |= 0X03; // auto light indicator
-  sleep_ms(500);
-  DisplayBuffer[0] |= (1 << 2) | (1 << 5); // back light indicator
-  sleep_ms(500);
-
-  /* Clear DisplayBuffer when done. */
-  for (Loop1UInt8 = 0; Loop1UInt8 < DISPLAY_BUFFER_SIZE; ++Loop1UInt8)
-    DisplayBuffer[Loop1UInt8] = 0;
-  sleep_ms(500);
-
-  /* Display clock when done. */
-  show_time();
-  sleep_ms(500);
-
-  /* Do the same thing again, using the defined macros. */
-  IndicatorMondayOn;
-  sleep_ms(500);
-  IndicatorMondayOff;
-  sleep_ms(500);
-  IndicatorTuesdayOn;
-  sleep_ms(500);
-  IndicatorTuesdayOff;
-  sleep_ms(500);
-  IndicatorWednesdayOn;
-  sleep_ms(500);
-  IndicatorWednesdayOff;
-  sleep_ms(500);
-  IndicatorThursdayOn;
-  sleep_ms(500);
-  IndicatorThursdayOff;
-  sleep_ms(500);
-  IndicatorFridayOn;
-  sleep_ms(500);
-  IndicatorFridayOff;
-  sleep_ms(500);
-  IndicatorSaturdayOn;
-  sleep_ms(500);
-  IndicatorSaturdayOff;
-  sleep_ms(500);
-  IndicatorSundayOn;
-  sleep_ms(500);
-  IndicatorSundayOff;
-  sleep_ms(500);
-  IndicatorScrollOn;
-  sleep_ms(500);
-  IndicatorScrollOff;
-  sleep_ms(500);
-  IndicatorAlarmOn;
-  sleep_ms(500);
-  IndicatorAlarmOff;
-  sleep_ms(500);
-  IndicatorCountDownOn;
-  sleep_ms(500);
-  IndicatorCountDownOff;
-  sleep_ms(500);
-  IndicatorFrnhtOn;
-  sleep_ms(500);
-  IndicatorFrnhtOff;
-  sleep_ms(500);
-  IndicatorCelsiusOn;
-  sleep_ms(500);
-  IndicatorCelsiusOff;
-  sleep_ms(500);
-  IndicatorAmOn;
-  sleep_ms(500);
-  IndicatorAmOff;
-  sleep_ms(500);
-  IndicatorPmOn;
-  sleep_ms(500);
-  IndicatorPmOff;
-  sleep_ms(500);
-  IndicatorCountUpOn;
-  sleep_ms(500);
-  IndicatorCountUpOff;
-  sleep_ms(500);
-  IndicatorHourlyChimeOn;
-  sleep_ms(500);
-  IndicatorHourlyChimeOff;
-  sleep_ms(500);
-  IndicatorAutoLightOn;
-  sleep_ms(500);
-  IndicatorAutoLightOff;
-  sleep_ms(500);
-  IndicatorButtonLightsOn;
-  sleep_ms(500);
-  IndicatorButtonLightsOff;
-  sleep_ms(500);
-
-  /* Clear DisplayBuffer when done. */
-  for (Loop1UInt8 = 0; Loop1UInt8 < DISPLAY_BUFFER_SIZE; ++Loop1UInt8)
-    DisplayBuffer[Loop1UInt8] = 0;
-  sleep_ms(500);
-
-  /* Display clock when done. */
-  show_time();
-  sleep_ms(500);
-
-  return;
 /* ------------------------------------------------------------------ *\
        END - Test 17 - Play with weekday indicators in sequence.
 \* ------------------------------------------------------------------ */
@@ -18132,11 +17851,11 @@ void uart_send(UINT LineNumber, UCHAR *Format, ...)
     date_stamp(TimeStamp);
 
     /* Send time stamp through UART. */
-    printf(TimeStamp);
+    printf("%s", TimeStamp);
   }
 
-  /* Send string through UART. */
-  printf(Dum1Str);
+  /* Send string through UART. (Note: "%s" so that a '%' in already-formatted text is not re-interpreted.) */
+  printf("%s", Dum1Str);
 
   return;
 }
