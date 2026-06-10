@@ -17,6 +17,7 @@
    10-FEB-2023 1.00 - Initial release.
 \* ================================================================================================================ */
 
+#include "clock_types.h"
 #include "debug.h"
 #include "lwip/dns.h"
 #include "lwip/pbuf.h"
@@ -69,88 +70,11 @@ NTP_T *NTPStruct;
 
 
 extern uint64_t             DebugBitMask;
-extern datetime_t           CurrentTime;
 extern unsigned char        DayName[3][8][10];
-extern UINT8                FlagNTPSuccess;
 
-extern struct alarm
-{
-  UINT8 FlagStatus;
-  UINT8 Second;
-  UINT8 Minute;
-  UINT8 Hour;
-  UINT8 Day;
-  UCHAR Text[40];
-}Alarm;
-
-extern struct dst_parameters
-{
-  UINT8  StartMonth;
-  UINT8  StartDayOfWeek;
-  int8_t StartDayOfMonthLow;
-  int8_t StartDayOfMonthHigh;
-  UINT8  StartHour;
-  UINT16 StartDayOfYear;
-  UINT8  EndMonth;
-  UINT8  EndDayOfWeek;
-  int8_t EndDayOfMonthLow;
-  int8_t EndDayOfMonthHigh;
-  UINT8  EndHour;
-  UINT16 EndDayOfYear;
-  UINT8  ShiftMinutes;
-}DstParameters[25];
-
-
-extern struct flash_config
-{
-  UCHAR  Version[6];          // firmware version number (format: "06.00" - including end-of-string).
-  UINT8  CurrentYearCentile;  // assume we are in years 20xx on power-up but is adjusted when configuration is read (will your clock live long enough for a "21" ?!).
-  UINT8  Language;            // language used for data display (including date scrolling).
-  UCHAR  DaylightSavingTime;  // specifies how to handle the daylight saving time (see User Guide and / or clock options above).
-  UINT8  TemperatureUnit;     // CELSIUS or FAHRENHEIT default value (see clock options above).
-  UINT8  TimeDisplayMode;     // H24 or H12 default value (see clock options above).
-  UINT8  ChimeMode;           // chime mode (Off / On / Day).
-  UINT8  ChimeTimeOn;         // hourly chime will begin at this hour.
-  UINT8  ChimeTimeOff;        // hourly chime will stop after this hour.
-  UINT8  NightLightMode;      // night light mode (On / Off / Auto / Night).
-  UINT8  NightLightTimeOn;    // default night light time On.
-  UINT8  NightLightTimeOff;   // default night light time Off.
-  UINT8  FlagAutoBrightness;  // flag indicating we are in "Auto Brightness" mode.
-  UINT8  FlagKeyclick;        // flag for keyclick ("button-press" tone)
-  UINT8  FlagScrollEnable;    // flag indicating the clock will scroll the date and temperature at regular intervals on the display.
-  UINT8  FlagSummerTime;      // flag indicating the current status of Daylight Saving Time / Summer Time.
-  int8_t Timezone;            // (in minutes) value to add to local time to reach UTC (Universal Time Coordinate).
-  UINT8  Reserved1[48];       // reserved for future use.
-  struct alarm Alarm[9];      // alarms 1 to 9 parameters. Day is a bit mask.
-  UCHAR  SSID[40];            // SSID for Wi-Fi network. Note: SSID begins at position 5, so that a "footprint" can be confirmed prior to writing to flash.
-  UCHAR  Password[70];        // password for Wi-Fi network. Note: password begins at position 5, for the same reason as SSID above.
-  UCHAR  Reserved2[48];       // reserved for future use.
-  UINT16 Crc16;               // crc16 of previous data to validate configuration.
-} FlashConfig;
-
-
-extern struct ntp_data
-{
-  /* Time-related data. */
-  UINT8  CurrentDayOfWeek;
-  UINT8  CurrentDayOfMonth;
-  UINT8  CurrentMonth;
-  UINT16 CurrentYear; 
-  UINT8  CurrentYearLowPart;
-  UINT8  CurrentHour;
-  UINT8  CurrentMinute;
-  UINT8  CurrentSecond;
-
-  /* Generic data. */
-  time_t Epoch;
-  UINT8  FlagNTPResync;   // flag set to On if there is a specific reason to request an NTP update without delay.
-  UINT8  FlagNTPSuccess;  // flag indicating that NTP date and time request has succeeded.
-  UINT64 NTPDelta;
-  UINT32 NTPErrors;       // cumulative number of errors while trying to re-sync with NTP.
-  UINT64 NTPGetTime;
-  UINT64 NTPLastUpdate;
-  UINT32 NTPReadCycles;   // total number of re-sync cycles through NTP.
-}NTPData;
+/* Shared structure types are defined once in clock_types.h; the variables live in Pico-Green-Clock.c. */
+extern struct flash_config  FlashConfig;
+extern struct ntp_data      NTPData;
 
 
 
@@ -176,7 +100,7 @@ static void ntp_request(NTP_T *NTPStruct);
 static void ntp_result(NTP_T* NTPStruct, int status, time_t *result);
 
 /* Convert epoch time received from NTP to local real-time. */
-void epoch_time_to_utc_time(time_t *EpochTime);
+void epoch_time_to_local_time(time_t *EpochTime);
 
 
 
@@ -324,9 +248,12 @@ void ntp_get_time(void)
     if ((!NTPData.FlagNTPResync) && (NTPData.NTPGetTime + NTPData.NTPDelta > time_us_64()))
     {
       if (DebugBitMask & DEBUG_NTP)
+      {
         uart_send(__LINE__, "NTP poll...\r");
-        NTPData.FlagNTPSuccess = FLAG_POLL;
-        return;
+      }
+
+      NTPData.FlagNTPSuccess = FLAG_POLL;
+      return;
     }
 
 
@@ -494,15 +421,8 @@ int ntp_init(void)
     
       if (DebugBitMask & DEBUG_NTP)
       {
-        if (Loop1UInt8 < 10)
-        {
-          uart_send(__LINE__, "\r\r");
-          uart_send(__LINE__, "Wi-Fi connection failure (return code: %d)   Pass %u, retrying...\r\r\r", ReturnCode, Loop1UInt8 + 1);
-        }
-        else
-        {
-          uart_send(__LINE__, "Wi-Fi connection failure after %u retries...  aborting.\r", Loop1UInt8);
-        }
+        uart_send(__LINE__, "\r\r");
+        uart_send(__LINE__, "Wi-Fi connection failure (return code: %d)   Pass %u, retrying...\r\r\r", ReturnCode, Loop1UInt8 + 1);
       }
       /* Error while trying to establish Wi-Fi connection... Wait and try again. */
       sleep_ms(500);
@@ -510,12 +430,17 @@ int ntp_init(void)
   }
 
 
-  /* If we went out of "for" loop after 10 connection failures, turn "steady On" Pico W LED to indicate fatal error. */
-  if (Loop1UInt8 >= 10)
+  /* If we went out of the "for" loop without a successful connection, turn "steady On" Pico W LED to indicate fatal error.
+     (NOTE: this used to test the loop counter against 10 while the loop allowed 20 retries, so a connection
+            established on attempts 11-20 was wrongly reported as a fatal error.) */
+  if (ReturnCode != 0)
   {
+    if (DebugBitMask & DEBUG_NTP)
+      uart_send(__LINE__, "Wi-Fi connection failure after %u retries...  aborting.\r", Loop1UInt8);
+
     /* To overcome the inherent bug with Pico W USB CDC output after CYW43 init, use Pico's LED to visualize outcome. Steady On means error. */
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
-      
+
     return ERR_NTP_CONNECT;
   }
 
@@ -683,7 +608,7 @@ static void ntp_result(NTP_T* NTPStruct, int status, time_t *EpochTime)
   if (status == 0 && EpochTime)
   {
     if (DebugBitMask & DEBUG_NTP) uart_send(__LINE__, "Going to convert Epoch\r");
-    epoch_time_to_utc_time(EpochTime);
+    epoch_time_to_local_time(EpochTime);
   }
 
   if (NTPStruct->ntp_resend_alarm > 0)
@@ -705,11 +630,11 @@ static void ntp_result(NTP_T* NTPStruct, int status, time_t *EpochTime)
 
 
 /* $PAGE */
-/* $TITLE=epoch_time_to_utc_time() */
+/* $TITLE=epoch_time_to_local_time() */
 /* ------------------------------------------------------------------ *\
           Convert epoch time received from NTP to local time.
 \* ------------------------------------------------------------------ */
-void epoch_time_to_utc_time(time_t *EpochTime)
+void epoch_time_to_local_time(time_t *EpochTime)
 {
   UCHAR String[256];
 
@@ -717,7 +642,7 @@ void epoch_time_to_utc_time(time_t *EpochTime)
 
 
   if (DebugBitMask & DEBUG_NTP)
-    uart_send(__LINE__, "Entering epoch_time_to_utc_time(): %lu\r", *EpochTime);
+    uart_send(__LINE__, "Entering epoch_time_to_local_time(): %lu\r", *EpochTime);
 
   /* Adjust Epoch for local timezone, so that we will convert "Epoch local time" to "Current local time". */
   *EpochTime += (FlashConfig.Timezone * 60 * 60);  // Flash.TimeZone is given in hour.
@@ -734,7 +659,8 @@ void epoch_time_to_utc_time(time_t *EpochTime)
   NTPData.CurrentYear       = UtcTime->tm_year + 1900;
   NTPData.CurrentHour       = UtcTime->tm_hour;
   NTPData.CurrentMinute     = UtcTime->tm_min;
-  NTPData.CurrentSecond     = UtcTime->tm_sec++;        // compensate for time elapsed between NTP request and real-time IC complete setup.
+  NTPData.CurrentSecond     = UtcTime->tm_sec + 1;      // compensate for time elapsed between NTP request and real-time IC complete setup.
+                                                        // (was "tm_sec++", whose post-increment assigned the uncompensated value.)
 
   NTPData.NTPGetTime        = time_us_64();
 
