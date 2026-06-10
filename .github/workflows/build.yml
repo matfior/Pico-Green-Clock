@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, improvements]
+    branches: [main, improvements, quality-fixes]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -24,11 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - board: pico
-            cmake_file: CMakeLists.txt.Pico
-          - board: pico_w
-            cmake_file: CMakeLists.txt
+        board: [pico, pico_w]
 
     steps:
       - uses: actions/checkout@v4
@@ -51,24 +47,11 @@ jobs:
           path: pico-sdk
           submodules: recursive
 
-      - name: Stage CMakeLists for ${{ matrix.board }}
-        run: |
-          if [ "${{ matrix.cmake_file }}" != "CMakeLists.txt" ]; then
-            cp "${{ matrix.cmake_file }}" CMakeLists.txt
-          fi
-          cp pico-sdk/external/pico_sdk_import.cmake .
-
-      - name: Disable PICO_W for pico board
-        if: matrix.board == 'pico'
-        run: |
-          # The original Pico has no Wi-Fi/cyw43 and cannot link NTP support.
-          # PICO_W is hard-coded in the source; the upstream workflow is for the
-          # user to comment it out manually. Do that here for the pico job.
-          sed -i 's|^#define PICO_W  ///|// #define PICO_W  ///|' Pico-Green-Clock.c
-          grep -n 'define PICO_W' Pico-Green-Clock.c || true
+      - name: Stage pico_sdk_import.cmake
+        run: cp pico-sdk/external/pico_sdk_import.cmake .
 
       - name: Configure
-        run: cmake -S . -B build
+        run: cmake -S . -B build -DPICO_BOARD=${{ matrix.board }}
         env:
           PICO_SDK_PATH: ${{ github.workspace }}/pico-sdk
 

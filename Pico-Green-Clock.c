@@ -298,8 +298,9 @@
 /* Uncomment locally (and create a gitignored Credentials.cpp) to inject Wi-Fi creds into flash on first boot without touching tracked source. */
 // #define USE_LOCAL_CREDENTIALS  ///
 
-/* If a Pico W is used, librairies for Wi-Fi and NTP synchronization will be merged in the executable. If PICO_W is not defined, NTP is automatically disabled. */
-#define PICO_W  ///
+/* If a Pico W is used, librairies for Wi-Fi and NTP synchronization will be merged in the executable. If PICO_W is not defined, NTP is automatically disabled.
+   NOTE: PICO_W is now defined by the build system (CMakeLists.txt) based on PICO_BOARD - do not define it here.
+         Build with "cmake -S . -B build" for Pico W, or "cmake -S . -B build -DPICO_BOARD=pico" for the original Pico. */
 
 /* Flag to handle automatically the daylight saving time. List of countries are given in the User Guide. */
 #define DST_COUNTRY DST_NORTH_AMERICA
