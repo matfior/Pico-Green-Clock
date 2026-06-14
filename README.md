@@ -93,18 +93,22 @@ $ git clone git@github.com:astlouys/Pico-Green-Clock.git
 $ ls
 Pico-Green-Clock        pico-examples           pico-sdk
 ```
-4. Now lets build
+4. Now lets build. A single CMakeLists.txt supports both boards: the default build targets the Pico W
+   (Wi-Fi + NTP); pass `-DPICO_BOARD=pico` for the original Pico (no Wi-Fi). The `PICO_W` compile
+   definition used by the source is derived automatically from the selected board.
 ```
 $ cd Pico-Green-Clock/
-$ mkdir build
-$ cd build/
-$ export PICO_SDK_PATH=../../pico-sdk
-$ cmake ..
-$ make -j4
-$ ls
-CMakeCache.txt                  Pico-Clock-Green.dis            Pico-Clock-Green.uf2            pico-sdk
-CMakeFiles                      Pico-Clock-Green.elf            cmake_install.cmake             pioasm
-Makefile                        Pico-Clock-Green.elf.map        elf2uf2
-Pico-Clock-Green.bin            Pico-Clock-Green.hex            generated
+$ export PICO_SDK_PATH=../pico-sdk
+$ cmake -S . -B build              # Pico W (default)
+$ cmake -S . -B build -DPICO_BOARD=pico   # ... or original Pico
+$ cmake --build build --parallel
 ```
-You now have an executable "uf2" that you can transfer to the Pico`s flash memory to run the Pico-Green-Clock.
+You now have an executable "uf2" (build/Pico-Green-Clock.uf2) that you can transfer to the Pico`s flash memory (BOOTSEL mode) to run the Pico-Green-Clock.
+
+Prebuilt firmware for both boards is produced by the GitHub Actions workflow on every push (see the "Actions" tab, build artifacts).
+
+## Tests
+Host-side unit tests for the pure logic (CRC16, calendar math, BCD and bit helpers) live in `tests/test_pure.c`:
+```
+$ gcc -O2 -Wall -Wextra -std=c11 tests/test_pure.c -o tests/test_pure && ./tests/test_pure
+```

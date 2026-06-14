@@ -176,17 +176,29 @@ bool ds3231_check_alarm_1()
 /* $TITLE=ds3231_register_read() */
 /* ----------------------------------------------------------------- *\
           Read the main registers of the real-time clock IC.
+     A single burst read is used: the DS3231 latches its time
+     registers when the read begins, so the snapshot is consistent
+     (register-by-register reads could straddle a second / minute
+     rollover), and one transaction is ~16 times faster than the
+     previous one-transaction-per-register implementation.
 \* ----------------------------------------------------------------- */
 void ds3231_register_read()
 {
   UCHAR Loop1UInt8;
 
+  uint8_t Buffer[DS3231_REG_LTEMP + 1];  // registers 0x00 to 0x12 inclusive.
+  uint8_t StartRegister = DS3231_REG_SECOND;
 
-  for (Loop1UInt8 = 0; Loop1UInt8 < 16; ++Loop1UInt8)
-  {
-    i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, &REG_ADDRESSES[Loop1UInt8],      1,  true);
-    i2c_read_blocking( I2C_PORT, DS3231_ADDRESS, &Ds3231ReadRegister[Loop1UInt8], 1, false);
-  }
+
+  if (i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, &StartRegister, 1, true) == PICO_ERROR_GENERIC)
+    return;  // keep previous register values on I2C error.
+
+  if (i2c_read_blocking(I2C_PORT, DS3231_ADDRESS, Buffer, sizeof(Buffer), false) == PICO_ERROR_GENERIC)
+    return;  // keep previous register values on I2C error.
+
+  /* Map the registers of interest into the same array slots as before. */
+  for (Loop1UInt8 = 0; Loop1UInt8 < 17; ++Loop1UInt8)
+    Ds3231ReadRegister[Loop1UInt8] = Buffer[REG_ADDRESSES[Loop1UInt8]];
 
   return;
 }
@@ -212,7 +224,7 @@ void ds3231_sqw_enable(bool Enable)
   if (Enable)
   {
     control |=   0b01000000;  // set BBSQW to 1
-    control &=  ~0b00000100;  // set INTCN to 1
+    control &=  ~0b00000100;  // clear INTCN to 0 (select square wave output instead of alarm interrupt)
   }
   else
   {
@@ -229,66 +241,6 @@ void ds3231_sqw_enable(bool Enable)
 
 
 
-/* $PAGE */
-/* $TITLE=format_time_mode() */
-/* ----------------------------------------------------------------- *\
-                  Was in original code but not used.
-             24-hours format is always used with RTC IC
-    and Firmware takes care of the 12-hours conversion if required.
-\* ----------------------------------------------------------------- */
-/***
-void format_time_mode()
-{
-  byte_data();
-
-  if ((Ds3231ReadRegister[2] & 0x40) != 0)
-  {
-    HourMode = true;
-
-    if ((Ds3231ReadRegister[2] & 0x20) != 0)
-    {
-      strcpy(StateOfTime, Meridiem[1]);
-    }
-    else
-      strcpy(StateOfTime, Meridiem[0]);
-  }
-  else
-    HourMode = false;
-
-  return
-}
-***/
-
-
-
-
-/* $PAGE */
-/* $TITLE=init_ds3231() */
-/* ----------------------------------------------------------------- *\
-                  Was in original code, but not used.
-\* ----------------------------------------------------------------- */
-/***
-void init_ds3231()
-{
-  unsigned char i;
-
-  uint8_t val[2];
-
-  val[0] = DS3231_REG_CONTROL;
-  val[1] = Control_default;
-  i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, val, 2, false);
-
-  val[0] = DS3231_REG_STATUS;
-  val[1] = Status_default;
-  i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, val, 2, false);
-
-  return;
-}
-***/
-
-
-
-
 
 /* $PAGE */
 /* $TITLE=Read_RTC() */
@@ -297,16 +249,23 @@ void init_ds3231()
 \* ----------------------------------------------------------------- */
 TIME_RTC Read_RTC()
 {
-  TIME_RTC timeRtc;
+  /* Last time successfully read, returned again if the I2C transaction fails
+     (returning garbage on a flaky bus would corrupt the displayed time). */
+  static TIME_RTC timeRtc;
 
   unsigned char RTC_buf[7];
 
 
   uint8_t val = 0x00;
 
-  i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, &val,    1,  true);
-  i2c_read_blocking( I2C_PORT, DS3231_ADDRESS, RTC_buf, 7, false);
+  if (i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, &val, 1, true) == PICO_ERROR_GENERIC)
+    return timeRtc;
 
+  if (i2c_read_blocking(I2C_PORT, DS3231_ADDRESS, RTC_buf, 7, false) == PICO_ERROR_GENERIC)
+    return timeRtc;
+
+  /* NOTE: values are kept in the DS3231's native BCD encoding; callers rely on this
+     (for example, day-of-month is printed with a "%X" format specifier). */
   timeRtc.seconds    = (RTC_buf[0] & 0x7F);
   timeRtc.minutes    = (RTC_buf[1] & 0x7F);
   timeRtc.hour       = (RTC_buf[2] & 0x3F);
@@ -411,39 +370,6 @@ void set_alarm2_clock(uint8_t Minute, uint8_t Hour, uint8_t Date)
   return;
 }
 
-
-
-
-
-/* $PAGE */
-/* $TITLE=set_clock_mode() */
-/* ----------------------------------------------------------------- *\
-                  Was in original code, but not used.
-\* ----------------------------------------------------------------- */
-/***
-void set_clock_mode(bool h12)
-{
-  uint8_t val[2];
-
-  val[0]= DS3231_REG_HOUR;
-  if (h12)
-  {
-    i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, &val[0], 1, true);
-    i2c_read_blocking(I2C_PORT, DS3231_ADDRESS, &val[1], 1, false);
-    val[1] = (val[1] | 0b01000000);
-    i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, val, 2, false);
-  }
-  else
-  {
-    i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, &val[0], 1, true);
-    i2c_read_blocking(I2C_PORT, DS3231_ADDRESS, &val[1], 1, false);
-    val[1] = (val[1] & 0b10111111);
-    i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, val, 2, false);
-  }
-
-  return;
-}
-***/
 
 
 
@@ -564,19 +490,8 @@ void set_time(uint8_t Second, uint8_t Minute, uint8_t Hour, uint8_t DayOfWeek, u
   TimeToSet[6] = dec_to_bcd(Month);
   TimeToSet[7] = dec_to_bcd(Year);
 
-  /***/
-  printf("set_time() (in Ds3231.c)\r\r");
-  printf("Hour:   %2.2u\r",   Hour);
-  printf("Minute: %2.2u\r",   Minute);
-  printf("Second: %2.2u\r\r", Second);
-  printf("DoW:    %2.2u\r",   DayOfWeek);
-  printf("DoM:    %2.2u\r",   DayOfMonth);
-  printf("Month:  %2.2u\r",   Month);
-  printf("Year:   %2.2u\r\r", Year);
-  /***/
-          
   i2c_write_blocking(I2C_PORT, DS3231_ADDRESS, TimeToSet, 8, false);
-  
+
   return;
 }
 

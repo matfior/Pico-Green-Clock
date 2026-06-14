@@ -72,11 +72,6 @@ TIME_RTC Read_RTC();
 
 
 
-extern bool HourMode;
-
-extern char Meridiem[2][3];
-extern char StateOfTime[3];
-
 extern uint8_t ByteData[16];
 extern uint8_t Ds3231ReadRegister[17];
 
@@ -105,16 +100,7 @@ bool ds3231_check_alarm_1();
 /* Read the main registers of the real-time clock IC. */
 void ds3231_register_read();
 
-/// void ds3231_set_alarm_s(uint8_t Hour, uint8_t Minute, uint8_t Second);
-
 void ds3231_sqw_enable(bool Enable);
-
-/* Not used for now. 24-hours format is always used with RTC IC
-   and Firmware takes care of the 12-hours conversion if required. */
-/// void format_time_mode();
-
-/* Not used for now. */
-/// void init_ds3231();
 
 /* Set alarm #1 in the RTC IC. */
 void set_alarm1_clock(uint8_t Mode, uint8_t Second, uint8_t Minute, uint8_t hour, uint8_t Data);
@@ -145,8 +131,5 @@ void set_time(uint8_t Second, uint8_t Minute, uint8_t Hour, uint8_t DayOfWeek, u
 
 /* Initialize the year in the RTC IC. */
 void set_year(uint8_t Year);
-
-/* Not used for now. */
-/// void Show_Time();
 
 #endif //PICO_EXAMPLES_DS3231_H

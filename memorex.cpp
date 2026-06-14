@@ -70,9 +70,10 @@ UINT8 decode_ir_command(UCHAR FlagDebug, UINT8 *IrCommand)
           
     if ((BitNumber > 0) && (BitNumber <= 32))
     {
+      /* Decode this data bit (single decode point): a High half-bit longer than 1400 usec is a "one", otherwise a "zero". */
       DataBuffer <<= 1;
       if (IrResultValue[Loop1UInt16 + 1] > 1400) ++DataBuffer;
-  
+
       /* Display 32 data bits. */
       if (DebugBitMask & DEBUG_IR_COMMAND)
          uart_send(__LINE__, " [%2u]   %3u     %c     %5lu      %c     %5lu      Data: 0x%8.8X\r", Loop1UInt16, BitNumber, IrLevel[Loop1UInt16], IrResultValue[Loop1UInt16], IrLevel[Loop1UInt16 + 1], IrResultValue[Loop1UInt16 + 1], DataBuffer);
@@ -96,9 +97,13 @@ UINT8 decode_ir_command(UCHAR FlagDebug, UINT8 *IrCommand)
       if (DebugBitMask & DEBUG_IR_COMMAND)
         uart_send(__LINE__, " Reaching end of IR burst > 10000 at IrStep %u\r", Loop1UInt16);
     }
-    else
+    else if (BitNumber <= 32)
     {
-      for (Loop2UInt16 - 0; Loop2UInt16 < 2; ++Loop2UInt16)
+      /* Validate timing of the Low half-bits of the 32 data bits (the data bits themselves are
+         decoded above; trailing steps after bit 32 have no specified timing, so skip them).
+         NOTE: the loop variable was previously left uninitialized ("Loop2UInt16 - 0") and the High
+               half-bit was decoded a second time here, corrupting DataBuffer (undefined behavior). */
+      for (Loop2UInt16 = 0; Loop2UInt16 < 2; ++Loop2UInt16)
       {
         if (IrLevel[Loop1UInt16 + Loop2UInt16] == 'L')
         {
@@ -109,18 +114,6 @@ UINT8 decode_ir_command(UCHAR FlagDebug, UINT8 *IrCommand)
 
             if (DebugBitMask & DEBUG_IR_COMMAND)
               uart_send(__LINE__, "decode_ir_command() - Error IrLevel <L>   Event number: %u   IrResultValue: %lu\r", Loop1UInt16 + Loop2UInt16, IrResultValue[Loop1UInt16 + Loop2UInt16]);
-          }
-        }
-        else
-        {
-          /* High level, it is a second half bit... assume it is a "zero" bit on entry. */
-          DataBuffer <<= 1;
-
-          /* Now check if our assumption was correct. */
-          if ((IrResultValue[Loop1UInt16 + Loop2UInt16] > 1500l) && (IrResultValue[Loop1UInt16 + Loop2UInt16] < 1800l))
-          {
-            /* It was a "one" bit. DataBuffer has already been shifted left above, simply add 1 for current "one" bit. */
-            ++DataBuffer;
           }
         }
       }

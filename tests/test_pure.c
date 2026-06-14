@@ -81,6 +81,50 @@ static UINT16 get_day_of_year(UINT16 YearNumber, UINT8 MonthNumber, UINT8 DayNum
     return TargetDayNumber;
 }
 
+/* Copied verbatim from Ds3231.c. */
+static UINT8 bcd_to_byte(UINT8 BcdValue)
+{
+    return ((((BcdValue & 0xF0) >> 4) * 10) + (BcdValue & 0x0F));
+}
+
+static UINT8 dec_to_bcd(int DecValue)
+{
+    return (UINT8)((DecValue / 10 * 16) + (DecValue % 10));
+}
+
+/* Copied verbatim from Pico-Green-Clock.c. */
+static UINT8 reverse_bits(UINT8 InputByte)
+{
+    UINT8 BitMask;
+    UINT8 OutputByte = 0;
+
+    for (BitMask = 1; BitMask > 0; BitMask <<= 1)
+    {
+        OutputByte <<= 1;
+
+        if (InputByte & BitMask)
+            OutputByte |= 1;
+    }
+
+    /* For usage in the Waveshare clock, the 5 bits used for the display must be in lowest 5 bits. */
+    return (OutputByte >> 3);
+}
+
+static UINT8 total_one_bits(UINT32 Data, UINT8 Size)
+{
+    UINT8 TotalOneBits;
+    UINT8 Loop1UInt8;
+
+    TotalOneBits = 0;
+    for (Loop1UInt8 = 0; Loop1UInt8 < Size; ++Loop1UInt8)
+    {
+        if (Data & (1 << Loop1UInt8))
+            ++TotalOneBits;
+    }
+
+    return TotalOneBits;
+}
+
 /* ---------------- Test harness ---------------- */
 
 static int failures = 0;
@@ -150,12 +194,54 @@ static void test_crc16(void)
     CHECK_EQ(crc16(msg, 9), 0x31C3, "crc16('123456789') == 0x31C3 (XMODEM vector)");
 }
 
+static void test_bcd_helpers(void)
+{
+    int value;
+
+    CHECK_EQ(dec_to_bcd(0),  0x00, "dec_to_bcd(0)");
+    CHECK_EQ(dec_to_bcd(9),  0x09, "dec_to_bcd(9)");
+    CHECK_EQ(dec_to_bcd(10), 0x10, "dec_to_bcd(10)");
+    CHECK_EQ(dec_to_bcd(59), 0x59, "dec_to_bcd(59)");
+    CHECK_EQ(dec_to_bcd(99), 0x99, "dec_to_bcd(99)");
+
+    CHECK_EQ(bcd_to_byte(0x00), 0,  "bcd_to_byte(0x00)");
+    CHECK_EQ(bcd_to_byte(0x59), 59, "bcd_to_byte(0x59)");
+    CHECK_EQ(bcd_to_byte(0x99), 99, "bcd_to_byte(0x99)");
+
+    /* Round-trip across the full range handled by the DS3231 (0-99). */
+    for (value = 0; value <= 99; ++value)
+        CHECK_EQ(bcd_to_byte(dec_to_bcd(value)), value, "bcd round-trip");
+}
+
+static void test_reverse_bits(void)
+{
+    /* reverse_bits() reverses the byte then shifts right by 3: only the
+       5 display-relevant bits survive. */
+    CHECK_EQ(reverse_bits(0x00), 0x00, "reverse_bits(0x00)");
+    CHECK_EQ(reverse_bits(0xFF), 0x1F, "reverse_bits(0xFF) keeps 5 bits");
+    CHECK_EQ(reverse_bits(0x01), 0x10, "reverse_bits(0x01) -> bit 4");
+    CHECK_EQ(reverse_bits(0x10), 0x01, "reverse_bits(0x10) -> bit 0");
+    CHECK_EQ(reverse_bits(0x80), 0x00, "reverse_bits(0x80) shifted out");
+}
+
+static void test_total_one_bits(void)
+{
+    CHECK_EQ(total_one_bits(0x00000000, 32), 0,  "no bits set");
+    CHECK_EQ(total_one_bits(0xFFFFFFFF, 32), 32, "all bits set");
+    CHECK_EQ(total_one_bits(0xFFFFFFFF, 8),  8,  "size limits the count");
+    CHECK_EQ(total_one_bits(0x00000101, 8),  1,  "bit above size ignored");
+    CHECK_EQ(total_one_bits(0xA5, 8),        4,  "0xA5 has 4 bits");
+}
+
 int main(void)
 {
     test_get_day_of_week();
     test_get_month_days();
     test_get_day_of_year();
     test_crc16();
+    test_bcd_helpers();
+    test_reverse_bits();
+    test_total_one_bits();
 
     printf("%d/%d tests passed\n", total - failures, total);
     return failures == 0 ? 0 : 1;
