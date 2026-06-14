@@ -966,8 +966,15 @@ struct reminder1
 };
 
 
-/* Events to scroll on clock display at specific dates. Must be setup by user. Some examples are already defined. */
+/* Reminders to ring / scroll. Must be setup by user. Some examples are already defined.
+   NOTE: this user-editable data table uses flat aggregate initializers (nested struct fields
+         without inner braces, and trailing fields left zero-initialized) on purpose, so the two
+         related pedantic warnings are suppressed only around this include. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #include REMINDER_FILENAME
+#pragma GCC diagnostic pop
 
 
 /* Active buzzer sound parameters definitions. */
@@ -1070,12 +1077,15 @@ UINT8  ChimeTimeOffDisplay        = CHIME_TIME_OFF;  // variable formatted to di
 UINT8  ChimeTimeOnDisplay         = CHIME_TIME_ON;   // variable formatted to display in 12-hours or 24-hours format.
 UINT8  CommandQueueHead;                       // head of Command circular buffer.
 UINT8  CommandQueueTail;                       // tail of Command circular buffer.
-UINT8  Core0Queue[MAX_CORE_QUEUE];             // circular buffer for inter-core communication.
-UINT8  Core0QueueHead;                         // head of circular buffer for inter-core communication.
-UINT8  Core0QueueTail;                         // tail of circular buffer for inter-core communication.
-UINT8  Core1Queue[MAX_CORE_QUEUE];             // circular buffer for inter-core communication.
-UINT8  Core1QueueHead;                         // head of circular buffer for inter-core communication.
-UINT8  Core1QueueTail;                         // tail of circular buffer for inter-core communication.
+/* NOTE: the inter-core circular buffers and their heads / tails are shared between core 0 and core 1
+         and must be volatile so that neither core caches them in registers. */
+volatile UINT8 Core0Queue[MAX_CORE_QUEUE];     // circular buffer for inter-core communication.
+volatile UINT8 Core0QueueHead;                 // head of circular buffer for inter-core communication.
+volatile UINT8 Core0QueueTail;                 // tail of circular buffer for inter-core communication.
+volatile UINT8 Core1Queue[MAX_CORE_QUEUE];     // circular buffer for inter-core communication.
+volatile UINT8 Core1QueueHead;                 // head of circular buffer for inter-core communication.
+volatile UINT8 Core1QueueTail;                 // tail of circular buffer for inter-core communication.
+volatile UINT8 FlagCore1Launched = FLAG_OFF;   // core 1 is running and must be paused (multicore lockout) during flash erase / program.
 UINT8  CurrentClockMode = MODE_POWER_UP;       // current clock mode.
 UINT8  CurrentDayOfMonth;
 UINT8  CurrentDayOfWeek;
@@ -1387,7 +1397,7 @@ UINT8 flash_save_config(void);
 UINT flash_write(UINT32 FlashMemoryOffset, UINT8 NewData[], UINT16 NewDataSize);
 
 /* Format string to display temperature on clock display. */
-void format_temp(UCHAR *TempString, UCHAR *PreString, float TempCelsius, float Humidity, float Pressure);
+void format_temp(UCHAR *TempString, size_t TempStringSize, UCHAR *PreString, float TempCelsius, float Humidity, float Pressure);
 
 /* Get temperature from DS3231. */
 float get_ambient_temperature(UINT8 TemperatureUnit);
@@ -1423,7 +1433,7 @@ int init_gpio(void);
 void input_string(UCHAR *String);
 
 /* Interrupt handler for signal received from IR sensor. */
-gpio_irq_callback_t isr_signal_trap(UINT8 gpio, UINT32 Events);
+void isr_signal_trap(uint gpio, uint32_t Events);
 
 /* Test clock LED matrix, column-by-column, and also all display indicators. */
 void matrix_test(UINT8 TestNumber);
@@ -1643,43 +1653,35 @@ void test_dst_status(void);
 \* ------------------------------------------------------------------ */
 int main(void)
 {
-  UCHAR Dum1UChar;
   UCHAR String[256];
-  UCHAR TempString1[25];
-  UCHAR TempString2[25];
-  UCHAR TempString3[25];
 
-  UINT8  DstUnit;
-  
-  UINT8  BitNumber;
-  UINT8  Dum1UInt8;
-  UINT8  FlagUpdate;
-  UINT8  IrCommand;        // command received from remote control.
+  /* NOTE: several locals below are only referenced under optional-feature build flags
+           (DHT_SUPPORT / BME280_SUPPORT / IR_SUPPORT), so they are marked __unused to
+           stay warning-clean in builds (such as RELEASE_VERSION) that omit those features. */
+  UINT8  BitNumber __unused;
+  UINT8  Dum1UInt8 __unused;
+  UINT8  IrCommand __unused;  // command received from remote control.
   UINT8  Loop1UInt8;
-  UINT8  SundayCounter;    // used to find daylight saving time current status.
-  UINT8  TargetDayOfWeek;
-  
-  int8_t UtcTime;          // used for DST algorithm.
+
 
   UINT16 Dum1UInt16;
   UINT16 Loop1UInt16;
-  UINT16 Loop2UInt16;
+  UINT16 Loop2UInt16 __unused;
 
-  int16_t ReturnCode;
+  int16_t ReturnCode __unused;  // only referenced on Pico W (NTP path).
 
-  UINT32 Bme280UniqueId;
-  UINT32 CounterHiLimit;
+  UINT32 Bme280UniqueId __unused;
 
   UINT64 ArchiveIdleMonitor[14][120];  // keep an history of idle monitorfor reference purposes (outside monitor is required).
-  UINT64 CurrentTimerValue;
-  UINT64 CurrentWatchDogReset;
-  UINT64 DataBuffer;
+  UINT64 CurrentTimerValue __unused;   // only referenced on Pico W (NTP path).
+  UINT64 CurrentWatchDogReset __unused;
+  UINT64 DataBuffer __unused;
   UINT64 Dum1UInt64;
-  UINT64 LastWatchDogReset;
+  UINT64 LastWatchDogReset __unused;
 
   float Duration;
-  float Humidity;       // for BME280 or DHT22.
-  float Temperature;    // for BME280 or DHT22.
+  float Humidity __unused;       // for BME280 or DHT22.
+  float Temperature __unused;    // for BME280 or DHT22.
 
   time_t TimeStamp;
 
@@ -2762,7 +2764,7 @@ int main(void)
     if (Reminder1[Loop1UInt8].StartPeriod.Year == 9999)
     {
       /* Year 9999 is a placeholder to repeat the reminder for every year. */
-       Reminder1[Loop1UInt8].StartPeriod.Year == CurrentYear;
+       Reminder1[Loop1UInt8].StartPeriod.Year = CurrentYear;
     }
     convert_human_to_tm(&Reminder1[Loop1UInt8].StartPeriod, &TmTime);
     Reminder1[Loop1UInt8].StartPeriodEpoch = convert_tm_to_unix(&TmTime);
@@ -2778,7 +2780,7 @@ int main(void)
     if (Reminder1[Loop1UInt8].EndPeriod.Year == 9999)
     {
       /* Year 9999 is a placeholder to repeat the reminder for every year. */
-       Reminder1[Loop1UInt8].EndPeriod.Year == CurrentYear;
+       Reminder1[Loop1UInt8].EndPeriod.Year = CurrentYear;
     }
     convert_human_to_tm(&Reminder1[Loop1UInt8].EndPeriod, &TmTime);
     Reminder1[Loop1UInt8].EndPeriodEpoch = convert_tm_to_unix(&TmTime);
@@ -2994,7 +2996,7 @@ int main(void)
   /* Initialize interrupt handler to capture remote control infrared commands data stream. */
   #ifdef IR_SUPPORT
   IrStepCount = 0;
-  gpio_set_irq_enabled_with_callback(IR_RX, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, (gpio_irq_callback_t)&isr_signal_trap);
+  gpio_set_irq_enabled_with_callback(IR_RX, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, isr_signal_trap);
   #endif  // IR_SUPPORT
 
 
@@ -3008,7 +3010,10 @@ int main(void)
      disabling interrupts, however the best that I got was a good communication but with glitches on the clock display while disabling / re-enabling interrupts. */
   multicore_launch_core1(core1_main);
 
-  
+  /* From now on, core 1 executes code from flash and must be paused (multicore lockout) during every flash erase / program. */
+  FlagCore1Launched = FLAG_ON;
+
+
   /* Send the command to core 1 to read DHT22 and then wait for the read cycle to complete. */
   core_queue(1, CORE1_READ_DHT);
   sleep_ms(400);
@@ -3073,7 +3078,6 @@ int main(void)
   /* ======================================================================================= *\
                               Main program loop... will loop for ever.
   \* ======================================================================================= */
-  FlagUpdate = FLAG_OFF;
   while (TRUE)
   {
     /***
@@ -3498,7 +3502,6 @@ UINT16 adc_read_light(void)
 \* -------------------------------------------------------------------- */
 void adc_read_pico_temp(float *DegreeC, float *DegreeF)
 {
-  UINT8 Dum1UInt8;
 
   UINT16 AdcRawValue;
 
@@ -3614,7 +3617,6 @@ float adc_read_voltage(void)
 \* --------------------------------------------------------------------- */
 void adjust_clock_brightness(void)
 {
-  UCHAR String[128];
 
   UINT Loop1UInt;
   static UINT NextCell = 0;  // point to next slot of circular buffer to be read.
@@ -3625,7 +3627,6 @@ void adjust_clock_brightness(void)
   static UINT16 AmbientLightMSecCounter;
   static UINT16 LightLevel[MAX_LIGHT_SLOTS] = {550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550, 550};  // assume average ambient light level on entry.
 
-  int32_t TempLevel;
 
   static UINT64 CumulativeLightLevel;
 
@@ -4387,7 +4388,6 @@ void clear_framebuffer(UINT8 StartColumn)
 \* ------------------------------------------------------------------ */
 UINT8 command_queue(UINT8 Command, UINT16 Parameter)
 {
-  UCHAR String[256];
 
 
   /* Check if the command circular buffer is full. */
@@ -4423,7 +4423,6 @@ UINT8 command_queue(UINT8 Command, UINT16 Parameter)
 \* ------------------------------------------------------------------ */
 UINT8 command_unqueue(UINT8 *Command, UINT16 *Parameter)
 {
-  UCHAR String[256];
 
 
   /* Check if the command queue is empty. */
@@ -4469,7 +4468,6 @@ UINT8 command_unqueue(UINT8 *Command, UINT16 *Parameter)
 \* ------------------------------------------------------------------ */
 UINT8 convert_h24_to_h12(UINT8 Hour, UINT8 *AmFlag, UINT8 *PmFlag)
 {
-  UCHAR String[128];
 
   UINT8 Dum1UInt8;
 
@@ -4645,6 +4643,11 @@ void core1_main(void)
   float Temperature;
 
 
+  /* Allow core 0 to pause this core during flash erase / program operations: this core executes
+     code from flash (XIP), which is unavailable while the flash is being erased or programmed. */
+  multicore_lockout_victim_init();
+
+
   /* Log a message when core 1 starts. */
   if (DebugBitMask & DEBUG_CORE)
     uart_send(__LINE__, "==================== CORE 1 - Core 1 thread started...\r");
@@ -4686,6 +4689,9 @@ void core1_main(void)
             DhtData.TimeStamp   = time_us_64();
             DhtData.Temperature = Temperature;
             DhtData.Humidity    = Humidity;
+
+            /* Make sure DhtData is visible to core 0 before the "read completed" command is queued. */
+            __mem_fence_release();
 
             if (DebugBitMask & DEBUG_CORE)
             {
@@ -4856,7 +4862,6 @@ UINT8 core_unqueue(UINT8 CoreNumber)
 \* ------------------------------------------------------------------ */
 UINT16 crc16(UINT8 *Data, UINT16 DataSize)
 {
-  UCHAR String[256];
 
   UINT16 CrcValue;
   UINT8 Loop1UInt8;
@@ -4911,30 +4916,6 @@ UINT16 crc16(UINT8 *Data, UINT16 DataSize)
 \* ------------------------------------------------------------------ */
 void date_stamp(UCHAR *String)
 {
-  UCHAR Month[16];
-
-  UINT Language;
-  UINT Loop1UInt;
-  UINT YearCentile;
-
-  struct human_time HumanTime;
-  struct tm         TmTime;
-
-
-  /* Retrieve current tm local time. */
-  /// convert_unix_to_tm(GlobalUnixTime, &TmTime, FLAG_ON);
-
-
-  /* Convert current tm local time to human local time. */
-  /// convert_tm_to_human();
-
-  
-  /* Make sure year centile is valid (should now be retrieved from flash). */
-  if ((FlashConfig.CurrentYearCentile > 10) && (FlashConfig.CurrentYearCentile < 30))
-    YearCentile = FlashConfig.CurrentYearCentile;
-  else
-    YearCentile = 20;
-
   /* NOTE: Use English month names since accents don't show up on external terminal. */
   sprintf(String, "[%2.2u-%s-%4.4u %2.2u:%2.2u:%2.2u] - ", CurrentDayOfMonth, ShortMonth[ENGLISH][CurrentMonth], CurrentYear, CurrentHour, CurrentMinute, CurrentSecond);
 
@@ -4964,7 +4945,7 @@ void display_data(UCHAR *Data, UINT32 Size)
 
   for (Loop1UInt32 = 0; Loop1UInt32 < Size; Loop1UInt32 += 16)
   {
-    snprintf(String, sizeof(String), "[%4.4X] ", Loop1UInt32);
+    snprintf(String, sizeof(String), "[%4.4lX] ", Loop1UInt32);
 
     for (Loop2UInt32 = 0; Loop2UInt32 < 16; ++Loop2UInt32)
     {
@@ -5016,7 +4997,6 @@ void display_data(UCHAR *Data, UINT32 Size)
 \* ------------------------------------------------------------------ */
 void display_pwm(struct pwm *Pwm, UCHAR *TitleString)
 {
-  UCHAR String[256];
 
   UINT16 Dum1UInt16;
 
@@ -5079,7 +5059,6 @@ void display_pwm(struct pwm *Pwm, UCHAR *TitleString)
 \* ------------------------------------------------------------------ */
 void evaluate_blinking_time(void)
 {
-  UCHAR String[256];
 
   UINT8 Loop1UInt8;
 
@@ -5316,7 +5295,7 @@ UINT16 fill_display_buffer_5X7(UINT8 Column, UINT8 AsciiCharacter)
   {
     /* If ASCII character is out-of-bound, replace it with "?". */
     TableOffset = (UINT16)((0x3F - 0x1E) * 7);
-    Width       = CharWidth[AsciiCharacter - 0x3F];
+    Width       = CharWidth[0x3F - 0x1E];
   }
 
 
@@ -5429,7 +5408,6 @@ void fill_display_buffer_4X7(UINT8 Column, UINT8 AsciiCharacter)
 \* ------------------------------------------------------------------ */
 void flash_check_config(void)
 {
-  UCHAR String[256];
 
   UINT16 Crc16;
 
@@ -5495,7 +5473,7 @@ void flash_display(UINT32 Offset, UINT32 Length)
 
   for (Loop1UInt32 = Offset; Loop1UInt32 < (Offset + Length); Loop1UInt32 += 16)
   {
-    snprintf(String, sizeof(String), "[%p] ", XIP_BASE + Loop1UInt32);
+    snprintf(String, sizeof(String), "[0x%8.8lX] ", XIP_BASE + Loop1UInt32);
 
     for (Loop2UInt32 = 0; Loop2UInt32 < 16; ++Loop2UInt32)
     {
@@ -5580,7 +5558,7 @@ UINT8 flash_display_config(void)
 
 
   /* Display Reserved1 data. */
-  uart_send(__LINE__, "[%X] Reserved1 - size: 0x%2.2X (%3u):\r  ", &FlashConfig.Reserved1[Loop1UInt16], sizeof(FlashConfig.Reserved1), sizeof(FlashConfig.Reserved1));
+  uart_send(__LINE__, "[%X] Reserved1 - size: 0x%2.2X (%3u):\r  ", &FlashConfig.Reserved1[0], sizeof(FlashConfig.Reserved1), sizeof(FlashConfig.Reserved1));
   for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(FlashConfig.Reserved1); ++Loop1UInt16)
   {
     uart_send(__LINE__, "- 0x%2.2X ", FlashConfig.Reserved1[Loop1UInt16]);
@@ -5616,7 +5594,7 @@ UINT8 flash_display_config(void)
     uart_send(__LINE__, "[%X] Alarm[%2.2u].Second:          %3u\r", &FlashConfig.Alarm[Loop1UInt16].Second, Loop1UInt16, FlashConfig.Alarm[Loop1UInt16].Second);
     
     uint64_to_binary_string(FlashConfig.Alarm[Loop1UInt16].Day, 8, DayMask);
-    snprintf(String, sizeof(String), "[%8.8X] Alarm[%2.2u].DayMask:    %s     (0x%2.2X) ", &FlashConfig.Alarm[Loop1UInt16].Day, Loop1UInt16, DayMask, FlashConfig.Alarm[Loop1UInt16].Day);
+    snprintf(String, sizeof(String), "[%8.8X] Alarm[%2.2u].DayMask:    %s     (0x%2.2X) ", (unsigned int)(uintptr_t)&FlashConfig.Alarm[Loop1UInt16].Day, Loop1UInt16, DayMask, FlashConfig.Alarm[Loop1UInt16].Day);
 
     for (Loop2UInt16 = 1; Loop2UInt16 < 8; ++Loop2UInt16)
     {
@@ -5688,11 +5666,8 @@ UINT8 flash_display_config(void)
 \* ------------------------------------------------------------------ */
 void flash_erase(UINT32 FlashMemoryOffset)
 {
-  UCHAR String[256];
 
-  UINT8 OriginalClockMode;
 
-  UINT16 Loop1UInt16;
 
   UINT32 InterruptMask;
 
@@ -5723,6 +5698,11 @@ void flash_erase(UINT32 FlashMemoryOffset)
 
   
   /* NOTE: Caller is responsible for dimming clock display while interrupts will be disabled. */
+  /* Pause core 1 if it is running: it executes code from flash (XIP), which is unavailable
+     during the erase, and it would hard-fault if left running. */
+  if (FlagCore1Launched == FLAG_ON)
+    multicore_lockout_start_blocking();
+
   /* Keep track of interrupt mask on entry. */
   InterruptMask = save_and_disable_interrupts();
 
@@ -5731,6 +5711,10 @@ void flash_erase(UINT32 FlashMemoryOffset)
 
   /* Restore original interrupt mask when done. */
   restore_interrupts(InterruptMask);
+
+  /* Resume core 1. */
+  if (FlagCore1Launched == FLAG_ON)
+    multicore_lockout_end_blocking();
 
   
   if (DebugBitMask & DEBUG_FLASH)
@@ -5750,7 +5734,6 @@ void flash_erase(UINT32 FlashMemoryOffset)
 \* ------------------------------------------------------------------ */
 UINT8 flash_read_config(void)
 {
-  UCHAR String[256];
 
   UINT16 Dum1UInt16;
   UINT8 *FlashBaseAddress;
@@ -5933,9 +5916,7 @@ UINT8 flash_read_config(void)
 \* ------------------------------------------------------------------ */
 UINT8 flash_save_config(void)
 {
-  UCHAR String[256];
 
-  UINT16 Loop1UInt16;
 
 
   /* Calculate CRC16 to include it in the packet being flashed. */
@@ -5980,11 +5961,9 @@ UINT8 flash_save_config(void)
 \* ------------------------------------------------------------------ */
 UINT flash_write(UINT32 NewDataOffset, UINT8 NewData[], UINT16 NewDataSize)
 {
-  UCHAR String[256];
 
   UINT8 CurrentDutyCycle;
   UINT8 *FlashBaseAddress;
-  UINT8 OriginalClockMode;
 
   UINT16 Loop1UInt16;
 
@@ -6072,6 +6051,11 @@ UINT flash_write(UINT32 NewDataOffset, UINT8 NewData[], UINT16 NewDataSize)
   /* Erase flash before reprogramming. */
   flash_erase(SectorOffset);
 
+  /* Pause core 1 if it is running: it executes code from flash (XIP), which is unavailable
+     during the programming, and it would hard-fault if left running. */
+  if (FlagCore1Launched == FLAG_ON)
+    multicore_lockout_start_blocking();
+
   /* Keep track of interrupt mask and disable interrupts during flash writing. */
   InterruptMask = save_and_disable_interrupts();
 
@@ -6080,6 +6064,10 @@ UINT flash_write(UINT32 NewDataOffset, UINT8 NewData[], UINT16 NewDataSize)
 
   /* Restore original interrupt mask when done. */
   restore_interrupts(InterruptMask);
+
+  /* Resume core 1. */
+  if (FlagCore1Launched == FLAG_ON)
+    multicore_lockout_end_blocking();
 
   /* Restore display when done. */
   pwm_set_duty_cycle(CurrentDutyCycle);
@@ -6099,18 +6087,21 @@ UINT flash_write(UINT32 NewDataOffset, UINT8 NewData[], UINT16 NewDataSize)
 /* ------------------------------------------------------------------ *\
          Format string to display temperature on clock display.
 \* ------------------------------------------------------------------ */
-void format_temp(UCHAR *TempString, UCHAR *PreString, float Temperature, float Humidity, float Pressure)
+void format_temp(UCHAR *TempString, size_t TempStringSize, UCHAR *PreString, float Temperature, float Humidity, float Pressure)
 {
+  /* NOTE: the previous version used sizeof(TempString) on the pointer parameter (= 4), and
+           "sizeof - strlen" underflowed to a huge value, making the appends unbounded.
+           The caller now passes the real destination buffer size. */
   /* Write temperature to the string to be displayed... */
   if (FlashConfig.TemperatureUnit == CELSIUS)
   {
     /* ...in Celsius. */
-    snprintf(TempString, sizeof(TempString), "%s%2.2f%cC", PreString, Temperature, 0x80);
+    snprintf(TempString, TempStringSize, "%s%2.2f%cC", PreString, Temperature, 0x80);
   }
   else
   {
     /* ...or in Fahrenheit. */
-    snprintf(TempString, sizeof(TempString), "%s%2.2f%cF", PreString, Temperature, 0x80);
+    snprintf(TempString, TempStringSize, "%s%2.2f%cF", PreString, Temperature, 0x80);
   }
 
   if (Humidity != 0)
@@ -6118,13 +6109,13 @@ void format_temp(UCHAR *TempString, UCHAR *PreString, float Temperature, float H
     switch (FlashConfig.Language)
     {
       case (CZECH):
-        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  vlh: %2.2f%%", Humidity);
+        snprintf(&TempString[strlen(TempString)], TempStringSize - (strlen(TempString)), "  vlh: %2.2f%%", Humidity);
       break;
 
       case (ENGLISH):
       case (FRENCH):
       default:
-        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  Hum: %2.2f%%", Humidity);
+        snprintf(&TempString[strlen(TempString)], TempStringSize - (strlen(TempString)), "  Hum: %2.2f%%", Humidity);
       break;
     }
   }
@@ -6134,20 +6125,20 @@ void format_temp(UCHAR *TempString, UCHAR *PreString, float Temperature, float H
     switch (FlashConfig.Language)
     {
       case (CZECH):
-        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  tlak: %2.2f%% hPa.", Pressure);
+        snprintf(&TempString[strlen(TempString)], TempStringSize - (strlen(TempString)), "  tlak: %2.2f%% hPa.", Pressure);
       break;
 
       case (FRENCH):
-        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  Pression: %2.2f%% hPa", Pressure);
+        snprintf(&TempString[strlen(TempString)], TempStringSize - (strlen(TempString)), "  Pression: %2.2f%% hPa", Pressure);
       break;
 
       case (SPANISH):
-        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  Presion: %2.2f%% hPa", Pressure);
+        snprintf(&TempString[strlen(TempString)], TempStringSize - (strlen(TempString)), "  Presion: %2.2f%% hPa", Pressure);
       break;
 
       default:
       case (ENGLISH):
-        snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), "  Pressure: %2.2f%% hPa", Pressure);
+        snprintf(&TempString[strlen(TempString)], TempStringSize - (strlen(TempString)), "  Pressure: %2.2f%% hPa", Pressure);
       break;
     }
   }
@@ -6167,7 +6158,6 @@ void format_temp(UCHAR *TempString, UCHAR *PreString, float Temperature, float H
 float get_ambient_temperature(UINT8 TemperatureUnit)
 {
   UCHAR StartTran[2] = {0x0E, 0x20};
-  UCHAR String[256];
   UCHAR TempPart1;
   UCHAR TempPart2;
   UCHAR TempString[16];
@@ -6266,7 +6256,6 @@ void get_date_string(UCHAR *String)
   UINT8 DumDayOfMonth;
   UINT8 DumMonth;
   UINT8 DumYearLowPart;
-  UINT8 TemperatureF;
 
   UINT16 Loop1UInt16;
 
@@ -6404,7 +6393,6 @@ UINT8 get_day_of_week(UINT16 Year, UINT8 Month, UINT8 DayOfMonth)
 \* ------------------------------------------------------------------ */
 UINT16 get_day_of_year(UINT16 YearNumber, UINT8 MonthNumber, UINT8 DayNumber)
 {
-  UCHAR String[256];
 
   UINT8 Loop1UInt8;
 
@@ -6581,7 +6569,6 @@ void get_dst_days(void)
 \* ------------------------------------------------------------------ */
 UINT8 get_microcontroller_type(void)
 {
-  UCHAR String[128];
 
   UINT16 AdcValue1;
   UINT16 AdcValue2;
@@ -6740,12 +6727,15 @@ UINT8 get_month_days(UINT16 CurrentYear, UINT8 MonthNumber)
       case 11:
         return MonthDays[1][10];
       break;
-    
+
       case 12:
         return MonthDays[1][11];
       break;
     }
   }
+
+  /* Invalid month number. */
+  return 0;
 }
 
 
@@ -7006,7 +6996,7 @@ void input_string(UCHAR *String)
          Interrupt handler for signal received from IR sensor
                            (type VS1838B).
 \* ----------------------------------------------------------------- */
-gpio_irq_callback_t isr_signal_trap(UINT8 gpio, UINT32 Events)
+void isr_signal_trap(uint gpio, uint32_t Events)
 {
   if (gpio == IR_RX)
   {
@@ -7052,7 +7042,6 @@ gpio_irq_callback_t isr_signal_trap(UINT8 gpio, UINT32 Events)
 \* ------------------------------------------------------------------ */
 void matrix_test(UINT8 TestNumber)
 {
-  UCHAR String[128];
 
   UINT8 Column;
   UINT8 ColumnUp[23];
@@ -7363,8 +7352,9 @@ void pixel_twinkling(UINT16 Seconds)
   UINT8 DumBit;
   UINT8 Status[24][8];
 
-  UINT16 Frequency;
-  UINT16 Loop1UInt16;
+  /* Frequency / Loop1UInt16 are only referenced when PASSIVE_PIEZO_SUPPORT is defined. */
+  UINT16 Frequency __unused;
+  UINT16 Loop1UInt16 __unused;
 
   UINT64 StartTime;
 
@@ -7455,6 +7445,7 @@ void pixel_twinkling(UINT16 Seconds)
 \* ------------------------------------------------------------------ */
 void play_jingle(UINT16 JingleNumber)
 {
+  (void)JingleNumber;  // only used when PASSIVE_PIEZO_SUPPORT is defined.
   #ifndef PASSIVE_PIEZO_SUPPORT
   return;
   #else
@@ -7571,7 +7562,6 @@ void play_jingle(UINT16 JingleNumber)
 \* ------------------------------------------------------------------ */
 void process_command_queue(void)
 {
-  UCHAR String[128];
 
   UINT8 Command;
 
@@ -9313,31 +9303,30 @@ void process_ir_command(UINT8 IrCommand)
 void process_scroll_queue(void)
 {
   UCHAR DayMask[16];
-  UCHAR TempString[DISPLAY_BUFFER_SIZE];
+  /* TempString and the temperature / humidity / pressure floats are only used under the optional
+     sensor build flags (DHT_SUPPORT / BME280_SUPPORT); Command/Head/Tail/etc. under DHT_SUPPORT. */
+  UCHAR TempString[DISPLAY_BUFFER_SIZE] __unused;
   UCHAR String[256];
-  UCHAR Voltage[12];
 
-  UINT8 Command;
-  UINT8 DhtDisplay[4];
+  UINT8 Command __unused;
   UINT8 Dum1UInt8;
-  UINT8 Head;
+  UINT8 Head __unused;
   UINT8 Loop1UInt8;
   UINT8 Loop2UInt8;
   UINT8 Tag;
-  UINT8 Tail;
+  UINT8 Tail __unused;
 
-  UINT16 Loop1UInt16;
+  UINT16 Loop1UInt16 __unused;
 
-  UINT64 CurrentTimeStamp;
+  UINT64 CurrentTimeStamp __unused;
 
-  int Dum1Int;
 
   float DegreeC;
   float DegreeF;
-  float Humidity;
-  float Pressure;
+  float Humidity __unused;
+  float Pressure __unused;
   float Temperature;
-  float TemperatureF;
+  float TemperatureF __unused;
   float Volts;
 
 
@@ -9578,8 +9567,11 @@ void process_scroll_queue(void)
 
 
             /* If core 1 read DHT temperature data successfully. */
-            if (Command == CORE0_DHT_READ_COMPLETED)          
+            if (Command == CORE0_DHT_READ_COMPLETED)
             {
+              /* Make sure DhtData written by core 1 is visible on this core before reading it. */
+              __mem_fence_acquire();
+
               if (DebugBitMask & DEBUG_CORE)
               {
                 uart_send(__LINE__, "-------------------- CORE 0 - Returned DHT read successful - Temp: %f   Hum: %f\r", DhtData.Temperature, DhtData.Humidity);
@@ -9596,9 +9588,9 @@ void process_scroll_queue(void)
               }
 
               #ifdef RELEASE_VERSION
-              format_temp(TempString, "", DhtData.Temperature, DhtData.Humidity, 0.0);
+              format_temp(TempString, sizeof(TempString), "", DhtData.Temperature, DhtData.Humidity, 0.0);
               #else
-              format_temp(TempString, "Int: ", DhtData.Temperature, DhtData.Humidity, 0.0);
+              format_temp(TempString, sizeof(TempString), "Int: ", DhtData.Temperature, DhtData.Humidity, 0.0);
               #endif
 
               if (DebugBitMask & DEBUG_CORE)
@@ -9610,7 +9602,7 @@ void process_scroll_queue(void)
 
           /* No matter if we scroll temperature data or if DHT22 read cycle failed (in which case we don't scroll temperature data),
              in all cases, let's display the total number or DHT22 read errors on the total number of DHT22 read cycles. */
-          snprintf(&TempString[strlen(TempString)], sizeof(TempString) - (strlen(TempString)), " (%lu/%lu)    ", DhtData.DhtErrors, DhtData.DhtReadCycles);
+          snprintf(&TempString[strlen(TempString)], TempStringSize - (strlen(TempString)), " (%lu/%lu)    ", DhtData.DhtErrors, DhtData.DhtReadCycles);
           scroll_string(24, TempString);
           #endif  // DHT_SUPPORT
         break;
@@ -10069,7 +10061,7 @@ void process_scroll_queue(void)
                   strcat(DayMask, "0");
               }
               strcat(DayMask, "0");  // add bit 0 since days-of-week go from 1 to 7 (1 being SUN and 7 being SAT)
-              snprintf(String, sizeof(String), "[%X] Alarm[%2.2u].DayMask:     %s     (%X) ", &FlashConfig.Alarm[Loop1UInt8].Day, Loop1UInt8, DayMask, FlashConfig.Alarm[Loop1UInt8].Day);
+              snprintf(String, sizeof(String), "[%X] Alarm[%2.2u].DayMask:     %s     (%X) ", (unsigned int)(uintptr_t)&FlashConfig.Alarm[Loop1UInt8].Day, Loop1UInt8, DayMask, FlashConfig.Alarm[Loop1UInt8].Day);
 
               
               for (Loop2UInt8 = 1; Loop2UInt8 < 8; ++Loop2UInt8)
@@ -10099,15 +10091,15 @@ void process_scroll_queue(void)
             switch (FlashConfig.Language)
             {
               case (CZECH):
-                snprintf(String, sizeof(String), "Chyba NTP: %lu/%lu.   ", NTPData.NTPErrors);
+                snprintf(String, sizeof(String), "Chyba NTP: %lu.   ", NTPData.NTPErrors);
               break;
 
               case (FRENCH):
-                snprintf(String, sizeof(String), "Erreurs NTP: %lu/%lu   ", NTPData.NTPErrors);
+                snprintf(String, sizeof(String), "Erreurs NTP: %lu   ", NTPData.NTPErrors);
               break;
 
               case (SPANISH):
-                snprintf(String, sizeof(String), "Errores NTP: %lu/%lu   ", NTPData.NTPErrors);
+                snprintf(String, sizeof(String), "Errores NTP: %lu   ", NTPData.NTPErrors);
               break;
 
               case (ENGLISH):
@@ -10371,7 +10363,6 @@ void process_scroll_queue(void)
 \* ---------------------------------------------------------------------------- */
 void pwm_initialize(void)
 {
-  UCHAR String[128];
 
   UINT8 Loop1UInt8;
 
@@ -10459,7 +10450,6 @@ void pwm_initialize(void)
 \* ---------------------------------------------------------------------------- */
 void pwm_on_off(UINT8 PwmNumber, UINT8 FlagSwitch)
 {
-  UCHAR String[256];
 
 
   Pwm[PwmNumber].OnOff = FlagSwitch;
@@ -10492,7 +10482,6 @@ void pwm_on_off(UINT8 PwmNumber, UINT8 FlagSwitch)
 \* ---------------------------------------------------------------------------- */
 void pwm_set_duty_cycle(UINT8 DutyCycle)
 {
-  UCHAR String[256];
 
 
   /* Validate value specified for duty cycle. */
@@ -10520,6 +10509,7 @@ void pwm_set_duty_cycle(UINT8 DutyCycle)
 \* ---------------------------------------------------------------------------- */
 void pwm_set_frequency(UINT16 Frequency)
 {
+  (void)Frequency;  // body is compiled out when SOUND_DISABLED is defined.
   #ifndef SOUND_DISABLED
   UCHAR String[256];
 
@@ -11105,9 +11095,6 @@ void scroll_one_dot(void)
 \* ------------------------------------------------------------------ */
 UINT8 scroll_queue(UINT8 Tag)
 {
-  UINT8 Dum1UChar;
-
-
   if (DebugBitMask & DEBUG_SCROLL)
     uart_send(__LINE__, "Entering scroll_queue()\r");
 
@@ -11123,7 +11110,6 @@ UINT8 scroll_queue(UINT8 Tag)
 
   /* If there is at least one slot available in the queue, insert the tag for the string to be scrolled. */
   ScrollQueue[ScrollQueueHead] = Tag;
-  Dum1UChar = ScrollQueueHead;
   ++ScrollQueueHead;
 
   if (ScrollQueueHead >= MAX_SCROLL_QUEUE)
@@ -11149,6 +11135,7 @@ UINT8 scroll_queue(UINT8 Tag)
 \* ------------------------------------------------------------------ */
 UINT8 scroll_queue_value(UINT8 Tag, UCHAR *String)
 {
+  (void)Tag;  // only used in some build configurations.
   static UINT8 EventNumber;
 
 
@@ -11183,7 +11170,6 @@ UINT8 scroll_queue_value(UINT8 Tag, UCHAR *String)
 \* ------------------------------------------------------------------ */
 void scroll_string(UINT8 StartColumn, UCHAR *StringToScroll)
 {
-  UCHAR String[256];
 
   UINT16 Loop1UInt16;
 
@@ -11692,10 +11678,6 @@ void set_mode_timeout(void)
 \* ------------------------------------------------------------------ */
 void set_pixel(UINT8 PixelRow, UINT8 PixelColumn, UINT8 Flag)
 {
-  UINT8 Column;
-  UINT8 Row;
-
-
   /* Validation of Row number. */
   --PixelRow;  // make it 0-biased
   if (PixelRow > 6) return;
@@ -11729,7 +11711,6 @@ void set_pixel(UINT8 PixelRow, UINT8 PixelColumn, UINT8 Flag)
 \* ------------------------------------------------------------------ */
 void setup_alarm_frame(void)
 {
-  UCHAR String[256];
 
   UINT8 AmFlag;
   UINT8 PmFlag;
@@ -12034,7 +12015,7 @@ void setup_alarm_variables(UINT8 FlagButtonSelect)
         strcat(DayMask, "0");
     }
     strcat(DayMask, "0");  // add bit 0 since days-of-week go from 1 to 7 (1 being SUN and 7 being SAT)
-    snprintf(String, sizeof(String), "[%X] Alarm[%2.2u].DayMask:     %s     (%X) ", &FlashConfig.Alarm[AlarmNumber].Day, AlarmNumber, DayMask, FlashConfig.Alarm[AlarmNumber].Day);
+    snprintf(String, sizeof(String), "[%X] Alarm[%2.2u].DayMask:     %s     (%X) ", (unsigned int)(uintptr_t)&FlashConfig.Alarm[AlarmNumber].Day, AlarmNumber, DayMask, FlashConfig.Alarm[AlarmNumber].Day);
 
     for (Loop1UInt8 = 1; Loop1UInt8 < 8; ++Loop1UInt8)
     {
@@ -12066,7 +12047,6 @@ void setup_alarm_variables(UINT8 FlagButtonSelect)
 \* ------------------------------------------------------------------ */
 void setup_clock_frame(void)
 {
-  UCHAR String[256];
 
   UINT8 AmFlag;
   UINT8 PmFlag;
@@ -12774,11 +12754,9 @@ void setup_clock_frame(void)
 \* ------------------------------------------------------------------ */
 void setup_clock_variables(UINT8 FlagButtonSelect)
 {
-  UCHAR String[256];
 
   UINT8 AmFlag;
   UINT8 PmFlag;
-  UINT8 Dum1UInt8; // dummy variable.
   UINT8 Loop1UInt8;
 
 
@@ -13283,7 +13261,6 @@ void setup_clock_variables(UINT8 FlagButtonSelect)
 \* ------------------------------------------------------------------ */
 void setup_timer_frame(void)
 {
-  UCHAR String[128];
 
   UINT8 Loop1UInt8;
 
@@ -13327,7 +13304,7 @@ void setup_timer_frame(void)
     /* Clear the clock framebuffer when done. */
     clear_framebuffer(26);
   }
-  else if ((SetupStep == SETUP_TIMER_MINUTE) || (SetupStep == SETUP_TIMER_SECOND) && (TimerMode != TIMER_OFF))
+  else if ((SetupStep == SETUP_TIMER_MINUTE) || ((SetupStep == SETUP_TIMER_SECOND) && (TimerMode != TIMER_OFF)))
   {
     if ((SetupStep == SETUP_TIMER_MINUTE) && (TimerMode == TIMER_COUNT_DOWN))
     {
@@ -13368,11 +13345,11 @@ void setup_timer_frame(void)
     if (TimerMode == TIMER_COUNT_DOWN)
     {
       /* Timer is currently in "Count Down" mode. */
-      fill_display_buffer_4X7(0, TimerMinutes / 10 + '0' & FlagBlinking[2]);
-      fill_display_buffer_4X7(5, TimerMinutes % 10 + '0' & FlagBlinking[2]);
+      fill_display_buffer_4X7(0, (TimerMinutes / 10 + '0') & FlagBlinking[2]);
+      fill_display_buffer_4X7(5, (TimerMinutes % 10 + '0') & FlagBlinking[2]);
       fill_display_buffer_4X7(10, ':');
-      fill_display_buffer_4X7(12, TimerSeconds / 10 + '0' & FlagBlinking[3]);
-      fill_display_buffer_4X7(17, TimerSeconds % 10 + '0' & FlagBlinking[3]);
+      fill_display_buffer_4X7(12, (TimerSeconds / 10 + '0') & FlagBlinking[3]);
+      fill_display_buffer_4X7(17, (TimerSeconds % 10 + '0') & FlagBlinking[3]);
 
       /* Clear the clock framebuffer when done. */
       clear_framebuffer(26);
@@ -13523,7 +13500,6 @@ void setup_timer_variables(UINT8 FlagButtonSelect)
 \* ------------------------------------------------------------------ */
 void show_time(void)
 {
-  UCHAR String[128];
   char TimeBuffer[4];
 
   UINT8 AmFlag;
@@ -13603,6 +13579,7 @@ void show_time(void)
 \* ------------------------------------------------------------------ */
 bool sound_callback_ms(struct repeating_timer *Timer50MSec)
 {
+  (void)Timer50MSec;  // parameter required by the SDK repeating-timer callback signature.
   UCHAR String[128];
 
   static UINT16 ActiveMSeconds;
@@ -13610,17 +13587,11 @@ bool sound_callback_ms(struct repeating_timer *Timer50MSec)
   static UINT16 ActiveRepeatCount;
   static UINT16 CurrentRepeat;
   static UINT8  FlagActiveSound;
-  static UINT8  FlagPassiveSound;
-  static UINT16 Frequency;
-  UINT16 Loop1UInt16;
-  static UINT16 PassiveMSeconds;
-  static UINT16 PassiveMSecCounter;
-
-  UINT64 Timer1;
-  UINT64 Timer2;
-
-
-  Timer1 = time_us_64();
+  /* The passive-buzzer statics below are only referenced when PASSIVE_PIEZO_SUPPORT is defined. */
+  static UINT8  FlagPassiveSound __unused;
+  static UINT16 Frequency __unused;
+  static UINT16 PassiveMSeconds __unused;
+  static UINT16 PassiveMSecCounter __unused;
 
 
   /* ========================================================= *\
@@ -13679,8 +13650,8 @@ bool sound_callback_ms(struct repeating_timer *Timer50MSec)
       /* Check if there are more sounds to play on active buzzer. Request duration and repeat count for next sound. */
       if (sound_unqueue_active(&ActiveMSeconds, &ActiveRepeatCount) == 0xFF)
       {
-        /* Either there is no more sound, either there was an error while trying to unqueue next sound (corrupted sound queue).
-        /* If sound_unqueue_active() is empty or unqueue failed, make sure audio is turned off. */
+        /* Either there is no more sound, or there was an error while trying to unqueue next sound (corrupted sound queue).
+           If sound_unqueue_active() is empty or unqueue failed, make sure audio is turned off. */
         gpio_put(BUZZ, 0);
       }
       else
@@ -13820,7 +13791,6 @@ bool sound_callback_ms(struct repeating_timer *Timer50MSec)
 \* ------------------------------------------------------------------ */
 UINT16 sound_queue_active(UINT16 MSeconds, UINT16 RepeatCount)
 {
-  UCHAR String[256];
 
 
   /* Trap circular buffer corruption. */
@@ -13883,7 +13853,6 @@ UINT16 sound_queue_active(UINT16 MSeconds, UINT16 RepeatCount)
 \* ------------------------------------------------------------------ */
 UINT8 sound_unqueue_active(UINT16 *MSeconds, UINT16 *RepeatCount)
 {
-  UCHAR String[256];
 
   UINT16 Loop1UInt16;
   
@@ -16541,7 +16510,7 @@ Test18:
 \* ------------------------------------------------------------------ */
 bool timer_callback_ms(struct repeating_timer *TimerMSec)
 {
-  UCHAR String[128];
+  (void)TimerMSec;  // parameter required by the SDK repeating-timer callback signature.
 
   UINT8 Dum1UInt8;
   UINT8 Loop1UInt8;
@@ -16920,8 +16889,7 @@ matrix_scan:
 \* ------------------------------------------------------------------ */
 bool timer_callback_s(struct repeating_timer *TimerSec)
 {
-  UCHAR String[128];
-  UCHAR String1[64];
+  (void)TimerSec;  // parameter required by the SDK repeating-timer callback signature.
 
   UINT8 CurrentDutyCycle;
   UINT8 Dum1UInt8;
@@ -16938,10 +16906,6 @@ bool timer_callback_s(struct repeating_timer *TimerSec)
   static UINT16 CountDownDelay;               // delay (in seconds) betweek each count-down alarm sound burst.
   UINT16 LightLevel;
   static UINT16 PreviousYear;
-
-  UINT64 Timer1;
-  UINT64 Timer2;
-  static UINT64 PreviousTimer;
 
 
   /* Indicate that we just entered callback_s. */
@@ -17738,10 +17702,7 @@ void uart_send(UINT LineNumber, UCHAR *Format, ...)
   UCHAR Dum1Str[256];
   UCHAR TimeStamp[128];
 
-  UINT Loop1UInt;
-  UINT StartChar;
 
-  struct human_time HumanTime;
 
   va_list argp;
 
@@ -17845,7 +17806,6 @@ void uint64_to_binary_string(UINT64 Value, UINT8 StringLength, UCHAR *BinaryStri
 void update_dst_status()
 {
   UCHAR Dum1UChar;
-  UCHAR String[256];
 
   int8_t UtcDisplayTime;
   int8_t UtcTime;
@@ -18341,7 +18301,6 @@ void update_dst_status()
 \* ------------------------------------------------------------------ */
 void update_left_indicators(void)
 {
-  UCHAR String[256];
 
   UINT8 Loop1UInt8;
 

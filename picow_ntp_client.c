@@ -122,7 +122,8 @@ extern void uart_send(UINT LineNumber, UCHAR *Format, ...);
 \* ------------------------------------------------------------------ */
 void init_cyw43(UINT CountryCode)
 {
-  UCHAR String[256];
+  (void)CountryCode;  // country is selected below via a compile-time constant.
+  UCHAR String[256] __unused;  // debug scaffold; unused in some build configurations.
 
 
   if (DebugBitMask & DEBUG_NTP)
@@ -164,7 +165,8 @@ void init_cyw43(UINT CountryCode)
 \* ------------------------------------------------------------------ */
 static void ntp_dns_found(const char *hostname, const ip_addr_t *ipaddr, void *arg)
 {
-  UCHAR String[256];
+  (void)hostname;  // parameter required by the lwIP dns_gethostbyname() callback signature.
+  UCHAR String[256] __unused;  // debug scaffold; unused in some build configurations.
 
   NTP_T *NTPStruct = (NTP_T*)arg;
 
@@ -201,7 +203,8 @@ static void ntp_dns_found(const char *hostname, const ip_addr_t *ipaddr, void *a
 \* ------------------------------------------------------------------ */
 static int64_t ntp_failed_handler(alarm_id_t id, void *user_data)
 {
-  UCHAR String[256];
+  (void)id;  // parameter required by the SDK alarm callback signature.
+  UCHAR String[256] __unused;  // debug scaffold; unused in some build configurations.
 
 
   if (DebugBitMask & DEBUG_NTP)
@@ -226,12 +229,12 @@ static int64_t ntp_failed_handler(alarm_id_t id, void *user_data)
 \* ------------------------------------------------------------------ */
 void ntp_get_time(void)
 {
-  UCHAR String[256];
+  UCHAR String[256] __unused;  // debug scaffold; unused in some build configurations.
 
   int ReturnCode;
 
   absolute_time_t AbsoluteTime;
-  int64_t         AbsoluteTimeDiff;
+  int64_t         AbsoluteTimeDiff __unused;
 
 
   if (DebugBitMask & DEBUG_NTP)
@@ -357,7 +360,7 @@ void ntp_get_time(void)
 \* ------------------------------------------------------------------ */
 int ntp_init(void)
 {
-  UCHAR String[128];
+  UCHAR String[128] __unused;  // debug scaffold; unused in some build configurations.
 
   UINT8 Loop1UInt8;
   UINT8 Loop2UInt8;
@@ -510,7 +513,8 @@ int ntp_init(void)
 \* ------------------------------------------------------------------ */
 static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
-  UCHAR String[256];
+  (void)pcb;  // parameter required by the lwIP udp_recv() callback signature.
+  UCHAR String[256] __unused;  // debug scaffold; unused in some build configurations.
 
   time_t EpochTime;
 
@@ -564,7 +568,7 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_ad
 \* ------------------------------------------------------------------ */
 static void ntp_request(NTP_T *NTPStruct)
 {
-  UCHAR String[256];
+  UCHAR String[256] __unused;  // debug scaffold; unused in some build configurations.
 
 
   if (DebugBitMask & DEBUG_NTP)
@@ -600,7 +604,7 @@ static void ntp_request(NTP_T *NTPStruct)
 \* ------------------------------------------------------------------ */
 static void ntp_result(NTP_T* NTPStruct, int status, time_t *EpochTime)
 {
-  UCHAR String[256];
+  UCHAR String[256] __unused;  // debug scaffold; unused in some build configurations.
 
 
   if (DebugBitMask & DEBUG_NTP) uart_send(__LINE__, "Entering ntp_result()\r");
@@ -636,7 +640,7 @@ static void ntp_result(NTP_T* NTPStruct, int status, time_t *EpochTime)
 \* ------------------------------------------------------------------ */
 void epoch_time_to_local_time(time_t *EpochTime)
 {
-  UCHAR String[256];
+  UCHAR String[256] __unused;  // debug scaffold; unused in some build configurations.
 
   struct tm *UtcTime;
 

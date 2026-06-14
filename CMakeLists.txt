@@ -28,7 +28,13 @@ add_executable(Pico-Green-Clock
         Pico-Green-Clock.c
         Ds3231.c)
 
-target_compile_options(Pico-Green-Clock PRIVATE -Wall -Wextra)
+# -Wno-pointer-sign: the firmware deliberately stores strings as UCHAR (unsigned char) so that
+# font / accented-character codes above 0x7F compare correctly; that convention clashes with the
+# char* used by string literals and libc, producing hundreds of harmless -Wpointer-sign warnings.
+# Disable just that one warning (C only) and keep the rest of -Wall -Wextra active.
+target_compile_options(Pico-Green-Clock PRIVATE
+        -Wall -Wextra
+        $<$<COMPILE_LANGUAGE:C>:-Wno-pointer-sign>)
 
 target_include_directories(Pico-Green-Clock PRIVATE
         ${CMAKE_CURRENT_LIST_DIR})
