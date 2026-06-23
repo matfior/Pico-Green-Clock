@@ -6257,12 +6257,14 @@ void get_date_string(UCHAR *String)
   UINT8 DumMonth;
   UINT8 DumYearLowPart;
 
-  UINT16 Loop1UInt16;
 
-
-  /* Wipe string on entry. */
-  for (Loop1UInt16 = 0; Loop1UInt16 < sizeof(String); ++Loop1UInt16)
-    String[Loop1UInt16] = 0x00;
+  /* Start with an empty string. Each language branch below writes from index 0
+     (sprintf null-terminates), so this only guards the unreachable case where
+     FlashConfig.Language matches no branch.
+     NOTE: the previous "for (... < sizeof(String) ...)" wipe was a no-op bug -
+     String is a pointer parameter here, so sizeof() yields the pointer width
+     (4 bytes), not the caller's buffer size. */
+  String[0] = '\0';
 
   /* Read the real-time clock IC DS3231. */
   Time_RTC         = Read_RTC();
